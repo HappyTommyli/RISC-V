@@ -1,4 +1,6 @@
-module imm_generator(input wire [31:0]instruction,input wire alu_op, output reg [31:0]imm);
+module imm_generator(
+    input [31:0]instruction,input alu_op, output reg [31:0]imm
+  );
 
   parameter I_TYPE = 3'b001;
   parameter S_TYPE = 3'b010;
