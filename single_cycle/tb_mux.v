@@ -1,3 +1,4 @@
+`timescale 1ns / 1ps
 module mux_tb();
     // Testbench signal definitions
     reg [31:0] in0;    // Input signal 0
