@@ -10,7 +10,8 @@ module CU  ( input wire [31:0] instruction, // instruction from Instruction Memo
              output reg [11:0] csr_addr, // CSR address   
              output reg csr_write_enable, // CSR write enable        
              output reg [1:0] csr_op, // CSR operation type       
-             output reg [4:0] csr_imm // immediate value for CSR instructions
+             output reg [4:0] csr_imm, // immediate value for CSR instructions
+             output reg [2:0] csr_funct3 // funct3 field for CSR instructions
             );
     wire [6:0] opcode; 
     wire [2:0] funct3;
@@ -33,7 +34,8 @@ module CU  ( input wire [31:0] instruction, // instruction from Instruction Memo
         csr_addr = 12'h000;  
         csr_write_enable = 0;          
         csr_op = 2'b00;      
-        csr_imm = 5'h00; 
+        csr_imm = 5'h00;
+        csr_funct3 = 3'b000; 
 
         case (opcode)
             7'b0110011: begin 
@@ -115,6 +117,7 @@ module CU  ( input wire [31:0] instruction, // instruction from Instruction Memo
                 alu_op = 4'b1010; // no operation
             end
             7'b1110011: begin // 
+                csr_funct3 = funct3;
                 case (funct3)
                     3'b000: begin
                         // ECALL or EBREAK
