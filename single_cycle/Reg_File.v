@@ -5,20 +5,24 @@ module Reg_File (
     input [31:0]data_mem_data
     output reg [31:0]rs1_data,
     output reg [31:0]rs2_data
-);
-wire [4:0] rs1_addr = instruction[19:15];
-wire [4:0] rs2_addr = instruction[24:20];
-wire [4:0] rd_addr  = instruction[11:7];
-reg [31:0] register [0:31];
+  );
+  wire [4:0] rs1_addr = instruction[19:15];
+  wire [4:0] rs2_addr = instruction[24:20];
+  wire [4:0] rd_addr  = instruction[11:7];
+  reg [31:0] register [0:31];
 
-//read x0, always zero
-assign rs1_data = (rs1_addr == 5'd0)? 32'b0:register[rs1_addr];
-assign rs2_data = (rs2_addr == 5'd0)? 32'b0:register[rs2_addr];
+  //read x0, always zero
+  assign rs1_data = (rs1_addr == 5'd0)? 32'b0:register[rs1_addr];
+  assign rs2_data = (rs2_addr == 5'd0)? 32'b0:register[rs2_addr];
 
-//write x0
-if(reg_write && rd_addr != 5'd0)begin
-    register[rd_addr] = alu_result;
-end
+  //write x0 not allowed
+  always @(*)
+  begin
+    if(reg_write && rd_addr != 5'd0)
+    begin
+      register[rd_addr] = alu_result;
+    end
+  end
 
 endmodule
 
