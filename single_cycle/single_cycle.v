@@ -52,6 +52,15 @@ reg csr_write_enable;
 reg [1:0] csr_op;
 reg [4:0] csr_imm;
 //csr_reg
+reg  clk;
+reg  rst;
+reg [11:0] csr_addr;
+reg  csr_write_enable;
+reg [1:0] csr_op;
+reg [2:0] csr_funct3;
+reg [31:0] rs1_data;
+reg [4:0] csr_imm;
+reg [31:0] csr_rdata;
 
 
 //alu
@@ -131,6 +140,18 @@ CU  CU_inst (
       .csr_op(csr_op),
       .csr_imm(csr_imm)
     );
+
+csr_reg  csr_reg_inst (
+           .clk(clk),
+           .rst(rst),
+           .csr_addr(csr_addr),
+           .csr_write_enable(csr_write_enable),
+           .csr_op(csr_op),
+           .csr_funct3(csr_funct3),
+           .rs1_data(rs1_data),
+           .csr_imm(csr_imm),
+           .csr_rdata(csr_rdata)
+         );
 
 ALU  ALU_inst (
        .rs1_data(rs1_data),
