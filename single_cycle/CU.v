@@ -95,9 +95,9 @@ module CU  ( input wire [31:0] instruction, // instruction from Instruction Memo
                     3'b000: alu_op = 4'b0001; // BEQ
                     3'b001: alu_op = 4'b0001; // BNE
                     3'b100: alu_op = 4'b0010; // BLT
-                    3'b101: alu_op = 4'b0010; // BGE
+                    3'b101: alu_op = 4'b1011; // BGE
                     3'b110: alu_op = 4'b0011; // BLTU
-                    3'b111: alu_op = 4'b0011; // BGEU
+                    3'b111: alu_op = 4'b1011; // BGEU
                     default: alu_op = 4'b1111; // invaild operation
                 endcase
             end
@@ -201,17 +201,18 @@ module CU  ( input wire [31:0] instruction, // instruction from Instruction Memo
   endmodule
 
 
-// aluop = 4'b0000: ADD ---rs1 + rs2/imm
-// aluop = 4'b0001: SUB ---rs1 - rs2
-// aluop = 4'b0010: SLT/SLTI 
-// aluop = 4'b0011: SLTU/SLTIU
-// aluop = 4'b0100: SLL/SLLI
-// aluop = 4'b0101: XOR/XORI
-// aluop = 4'b0110: SRL/SRLI
-// aluop = 4'b0111: SRA/SRAI
-// aluop = 4'b1000: OR/ORI
-// aluop = 4'b1001: AND/ANDI
-// aluop = 4'b1010: no operation
+// aluop = 4'b0000: ADD/ADDI/LB/LH/LW/LBU/LHU/SB/SH/SW/AUIPC/JALR (total 12 types)
+// aluop = 4'b0001: SUB/BEQ/BNE (total 3 types)
+// aluop = 4'b0010: SLT/SLTI/BLT (total 3 types)
+// aluop = 4'b0011: SLTU/SLTIU/BLTU (total 3 types)
+// aluop = 4'b0100: SLL/SLLI (total 2 types)
+// aluop = 4'b0101: XOR/XORI (total 2 types)
+// aluop = 4'b0110: SRL/SRLI (total 2 types)
+// aluop = 4'b0111: SRA/SRAI (total 2 types)
+// aluop = 4'b1000: OR/ORI (total 2 types)
+// aluop = 4'b1001: AND/ANDI (total 2 types)
+// aluop = 4'b1011: BGE/BGEU (total 2 types)
+// aluop = 4'b1010: no operation (for JAL, FENCE, FENCE.I, CSRRW, CSRRS, CSRRC, CSRRWI, CSRRSI, CSRRCI, LUI, ECALL, EBREAK) (total 12 types)
 // aluop = 4'b1111: invaild operation
 
 // csr_op = 2'b00: CSRRW
