@@ -1,6 +1,7 @@
 module PC_update (
     input [31:0] rs1_data,
     input jump,
+    input wire jalr_enable,  
     input branch,
     input [31:0]pc_address,
     input [31:0]imm,
@@ -10,7 +11,12 @@ module PC_update (
 
   always @( *)
   begin
-    if (jump)
+    if (jump && jalr_enable)//jalr
+    begin
+      next_pc = rs1_data + imm;
+    end
+
+    else if (jump && !jalr_enable)//jal
     begin
       next_pc = pc_address + imm;
     end

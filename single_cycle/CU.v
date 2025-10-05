@@ -7,6 +7,7 @@ module CU  ( input wire [31:0] instruction, // instruction from Instruction Memo
              output reg [3:0] alu_op, // ALU operation code
              output reg branch, // whether the instruction is a branch
              output reg jump, // whether the instruction is a jump
+             output reg jalr_enable, // whether the instruction is a jalr
              output reg [11:0] csr_addr, // CSR address   
              output reg csr_write_enable, // CSR write enable        
              output reg [1:0] csr_op, // CSR operation type       
@@ -31,6 +32,7 @@ module CU  ( input wire [31:0] instruction, // instruction from Instruction Memo
         alu_op = 4'b0000; 
         branch = 0;
         jump = 0;
+        jalr_enable = 0; 
         csr_addr = 12'h000;  
         csr_write_enable = 0;          
         csr_op = 2'b00;      
@@ -97,7 +99,7 @@ module CU  ( input wire [31:0] instruction, // instruction from Instruction Memo
                     3'b100: alu_op = 4'b0010; // BLT
                     3'b101: alu_op = 4'b1011; // BGE
                     3'b110: alu_op = 4'b0011; // BLTU
-                    3'b111: alu_op = 4'b1011; // BGEU
+                    3'b111: alu_op = 4'b0011; // BGEU
                     default: alu_op = 4'b1111; // invaild operation
                 endcase
             end
@@ -109,6 +111,7 @@ module CU  ( input wire [31:0] instruction, // instruction from Instruction Memo
             7'b1100111: begin // JALR
                 reg_write = 1;
                 jump = 1;
+                jalr_enable = 1; 
                 alu_src = 1;
                 alu_op = 4'b0000; // ADD for address calculation
             end
@@ -204,14 +207,14 @@ module CU  ( input wire [31:0] instruction, // instruction from Instruction Memo
 // aluop = 4'b0000: ADD/ADDI/LB/LH/LW/LBU/LHU/SB/SH/SW/AUIPC/JALR (total 12 types)
 // aluop = 4'b0001: SUB/BEQ/BNE (total 3 types)
 // aluop = 4'b0010: SLT/SLTI/BLT (total 3 types)
-// aluop = 4'b0011: SLTU/SLTIU/BLTU (total 3 types)
+// aluop = 4'b0011: SLTU/SLTIU/BLTU/BGEU (total 4 types)
 // aluop = 4'b0100: SLL/SLLI (total 2 types)
 // aluop = 4'b0101: XOR/XORI (total 2 types)
 // aluop = 4'b0110: SRL/SRLI (total 2 types)
 // aluop = 4'b0111: SRA/SRAI (total 2 types)
 // aluop = 4'b1000: OR/ORI (total 2 types)
 // aluop = 4'b1001: AND/ANDI (total 2 types)
-// aluop = 4'b1011: BGE/BGEU (total 2 types)
+// aluop = 4'b1011: BGE (total 1 type)
 // aluop = 4'b1010: no operation (for JAL, FENCE, FENCE.I, CSRRW, CSRRS, CSRRC, CSRRWI, CSRRSI, CSRRCI, LUI, ECALL, EBREAK) (total 12 types)
 // aluop = 4'b1111: invaild operation
 

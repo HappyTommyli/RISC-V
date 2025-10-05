@@ -13,7 +13,7 @@ module inst_mem (input wire [31:0]pc_address, input wire clk, output reg [31:0]i
   end
 
 
-  always @(posedge clk)
+  always @(posedge clk)//這個需要posedge clk 嗎? 直接@(*)不行嗎?
   begin
     instruction = memory[pc_address[31:2]];
   end

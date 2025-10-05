@@ -40,7 +40,7 @@ module ALU(
                 overflow = 0;
             end
             4'b0100:begin //sll
-                alu_result = (rs1_data << rs2_data);
+                alu_result = (rs1_data << rs2_data);//需要只取rs2_data[4:0]嗎?
                 overflow = 0;
             end
             4'b0010:begin //slt
@@ -64,9 +64,16 @@ module ALU(
                 overflow = 0;
             end
             4'b1011:begin //bge
-                alu_result = (rs1temp >= rs2temp) ? 1 : 0;
+                alu_result = (rs1temp >= rs2temp) ? 1 : 0;//alu_result 是32bits的 這邊要改成32bits嗎?
                 overflow = 0;
             end
+            /**
+            這邊還要加 aluop= 1010 no operation 
+            4'b1010: begin // NO OPERATION (no computation needed)
+                alu_result = 32'h00000000;
+                overflow = 0;
+            end
+            **/
             default: alu_result = 32'hx;
         endcase
     end
