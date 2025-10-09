@@ -1,3 +1,9 @@
+`timescale 1ns / 1ps
+
+module SingleCycle_RISCV (
+    input wire clk,  // System clock 
+    input wire rst   // Global reset 
+);
 // PC
 reg  clk;
 reg  rst;
@@ -13,11 +19,6 @@ reg [31:0] imm;
 reg zero;
 reg [31:0] next_pc;
 
-//mux1&2
-reg [31:0] in0;
-reg [31:0] in1;
-reg  ctrl;
-reg [31:0] out;
 
 //inst_mem
 reg [31:0] pc_address;
@@ -161,6 +162,7 @@ ALU  ALU_inst (
        .alu_result(alu_result),
        .overflow(overflow)
      );
+endmodule
 /**
 `timescale 1ns / 1ps
 
