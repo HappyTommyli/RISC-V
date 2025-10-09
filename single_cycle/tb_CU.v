@@ -44,13 +44,13 @@ module tb_CU;
 
     initial begin
         instruction = 32'h00000000;
-        #20; 
+        #1000; 
 
         // -------------------------- Test 1: R-type (opcode=0110011) --------------------------
         $display("\n==================================== [Test 1: R-type Instructions] ====================================");
         // 1.1 ADD (opcode=0110011, funct7=0000000, funct3=000)
         instruction = 32'h00100033; // Correct R-type ADD: x1 = x0 + x1
-        #20;
+        #200;
         $display("1.1 ADD:");
         $display("Expected: reg_write=1, mem_to_reg=0, mem_write=0, mem_read=0, alu_src=0, alu_op=4'b0000, branch=0, jump=0, jalr_enable=0");
         $display("Actual  : reg_write=%b, mem_to_reg=%b, mem_write=%b, mem_read=%b, alu_src=%b, alu_op=%4b, branch=%b, jump=%b, jalr_enable=%b",
@@ -64,7 +64,7 @@ module tb_CU;
 
         // 1.2 SUB (opcode=0110011, funct7=0100000, funct3=000)
         instruction = 32'h40100033; // Correct R-type SUB: x1 = x0 - x1
-        #20;
+        #2000;
         $display("\n1.2 SUB:");
         $display("Expected: reg_write=1, mem_to_reg=0, mem_write=0, mem_read=0, alu_src=0, alu_op=4'b0001, branch=0, jump=0, jalr_enable=0");
         $display("Actual  : reg_write=%b, mem_to_reg=%b, mem_write=%b, mem_read=%b, alu_src=%b, alu_op=%4b, branch=%b, jump=%b, jalr_enable=%b",
@@ -76,7 +76,7 @@ module tb_CU;
 
         // 1.3 SLL (opcode=0110011, funct7=0000000, funct3=001)
         instruction = 32'h00101033; // R-type SLL: x1 = x0 << x1
-        #20;
+        #2000;
         $display("\n1.3 SLL:");
         $display("Expected: reg_write=1, alu_op=4'b0100");
         $display("Actual  : reg_write=%b, alu_op=%4b", reg_write, alu_op);
@@ -87,7 +87,7 @@ module tb_CU;
 
         // 1.4 SLT (opcode=0110011, funct7=0000000, funct3=010)
         instruction = 32'h00102033; // R-type SLT: x1 = (x0 < x1) ? 1 : 0
-        #20;
+        #2000;
         if ( {reg_write, alu_op} != 5'b1_0010 )
         begin
             $error("1.4 SLT Test Failed!");
@@ -95,7 +95,7 @@ module tb_CU;
 
         // 1.5 SLTU (opcode=0110011, funct7=0000000, funct3=011)
         instruction = 32'h00103033; // R-type SLTU
-        #20;
+        #200;
         if ( {reg_write, alu_op} != 5'b1_0011 )
         begin
             $error("1.5 SLTU Test Failed!");
@@ -103,15 +103,15 @@ module tb_CU;
 
         // 1.6 XOR (opcode=0110011, funct7=0000000, funct3=100)
         instruction = 32'h00104033; // R-type XOR
-        #20;
-        if ( {reg_write, alu_op} != 5'b1_0105 )
+        #200;
+        if ( {reg_write, alu_op} != 5'b1_0101 )
         begin
             $error("1.6 XOR Test Failed!");
         end
 
         // 1.7 SRL (opcode=0110011, funct7=0000000, funct3=105)
         instruction = 32'h00105033; // R-type SRL
-        #20;
+        #200;
         if ( {reg_write, alu_op} != 5'b1_0110 )
         begin
             $error("1.7 SRL Test Failed!");
@@ -119,7 +119,7 @@ module tb_CU;
 
         // 1.8 SRA (opcode=0110011, funct7=0100000, funct3=105)
         instruction = 32'h40105033; // R-type SRA
-        #20;
+        #200;
         if ( {reg_write, alu_op} != 5'b1_0111 )
         begin
             $error("1.8 SRA Test Failed!");
@@ -127,7 +127,7 @@ module tb_CU;
 
         // 1.9 OR (opcode=0110011, funct7=0000000, funct3=110)
         instruction = 32'h00106033; // R-type OR
-        #20;
+        #200;
         if ( {reg_write, alu_op} != 5'b1_1000 )
         begin
             $error("1.9 OR Test Failed!");
@@ -135,7 +135,7 @@ module tb_CU;
 
         // 1.10 AND (opcode=0110011, funct7=0000000, funct3=111)
         instruction = 32'h00107033; // R-type AND
-        #20;
+        #200;
         if ( {reg_write, alu_op} != 5'b1_1001 )
         begin
             $error("1.10 AND Test Failed!");
@@ -143,7 +143,7 @@ module tb_CU;
 
         // 1.11 Invalid R-type (funct7=1111111, funct3=111)
         instruction = 32'h7F107033; // Correct opcode=0110011
-        #20;
+        #200;
         $display("\n1.11 R-type Invalid Funct:");
         $display("Expected: alu_op=4'b1111");
         $display("Actual  : alu_op=%4b", alu_op);
@@ -157,7 +157,7 @@ module tb_CU;
         $display("\n==================================== [Test 2: I-type Instructions] ====================================");
         // 2.1 ADDI (opcode=0010011, funct3=000)
         instruction = 32'h00100013; // Correct I-type ADDI: x1 = x0 + 1
-        #20;
+        #200;
         $display("2.1 ADDI:");
         $display("Expected: reg_write=1, alu_src=1, alu_op=4'b0000");
         $display("Actual  : reg_write=%b, alu_src=%b, alu_op=%4b", reg_write, alu_src, alu_op);
@@ -168,7 +168,7 @@ module tb_CU;
 
         // 2.2 SLLI (opcode=0010011, funct3=001, funct7=0000000)
         instruction = 32'h00101013; // I-type SLLI
-        #20;
+        #200;
         if ( {reg_write, alu_src, alu_op} != 6'b1_1_0100 )
         begin
             $error("2.2 SLLI Test Failed!");
@@ -176,7 +176,7 @@ module tb_CU;
 
         // 2.3 SLTI (opcode=0010011, funct3=010)
         instruction = 32'h00102013; // I-type SLTI
-        #20;
+        #200;
         if ( {reg_write, alu_src, alu_op} != 6'b1_1_0010 )
         begin
             $error("2.3 SLTI Test Failed!");
@@ -184,7 +184,7 @@ module tb_CU;
 
         // 2.4 SLTIU (opcode=0010011, funct3=011)
         instruction = 32'h00103013; // I-type SLTIU
-        #20;
+        #200;
         if ( {reg_write, alu_src, alu_op} != 6'b1_1_0011 )
         begin
             $error("2.4 SLTIU Test Failed!");
@@ -192,8 +192,8 @@ module tb_CU;
 
         // 2.5 XORI (opcode=0010011, funct3=100)
         instruction = 32'h00104013; // I-type XORI
-        #20;
-        if ( {reg_write, alu_src, alu_op} != 6'b1_1_0105 )
+        #200;
+        if ( {reg_write, alu_src, alu_op} != 6'b1_1_0101 )
         begin
             $error("2.5 XORI Test Failed!");
         end
@@ -456,7 +456,7 @@ module tb_CU;
         $display("Expected: reg_write=1, csr_write_enable=1, csr_op=2'b00, csr_addr=12'h123");
         $display("Actual  : reg_write=%b, csr_write_enable=%b, csr_op=%2b, csr_addr=%h",
                  reg_write, csr_write_enable, csr_op, csr_addr);
-        if ( {reg_write, csr_write_enable, csr_op, csr_addr} != 16'b1_1_00_0000000100100011 )
+        if ( {reg_write, csr_write_enable, csr_op, csr_addr} != 20'b1_1_00_0000_0001_0010_0011 )
         begin
             $error("8.3 CSRRW Test Failed!");
         end
@@ -468,7 +468,7 @@ module tb_CU;
         $display("Expected: reg_write=1, csr_write_enable=1, csr_op=2'b01, csr_addr=12'h456");
         $display("Actual  : reg_write=%b, csr_write_enable=%b, csr_op=%2b, csr_addr=%h",
                  reg_write, csr_write_enable, csr_op, csr_addr);
-        if ( {reg_write, csr_write_enable, csr_op, csr_addr} != 16'b1_1_01_00000100010110 ) // 12'h456 = 010001010110
+        if ( {reg_write, csr_write_enable, csr_op, csr_addr} != 20'b1_1_01_00000100010110 ) // 12'h456 = 010001010110
         begin
             $error("8.4 CSRRS Test Failed!");
         end
@@ -480,7 +480,7 @@ module tb_CU;
         $display("Expected: reg_write=1, csr_write_enable=1, csr_op=2'b10, csr_addr=12'h789");
         $display("Actual  : reg_write=%b, csr_write_enable=%b, csr_op=%2b, csr_addr=%h",
                  reg_write, csr_write_enable, csr_op, csr_addr);
-        if ( {reg_write, csr_write_enable, csr_op, csr_addr} != 16'b1_1_10_000001111001001 ) // 12'h789 = 01111001001 (padded to 12 bits)
+        if ( {reg_write, csr_write_enable, csr_op, csr_addr} != 20'b1_1_10_000001111001001 ) // 12'h789 = 01111001001 (padded to 12 bits)
         begin
             $error("8.5 CSRRC Test Failed!");
         end
@@ -507,7 +507,7 @@ module tb_CU;
         // 8.8 CSRRCI (opcode=1110011, funct3=111, csr_addr=0x111, csr_imm=0x05)
         instruction = 32'h11105373; // CSRRCI x0, 0x111, 0x05
         #20;
-        if ( {csr_op, csr_imm} != 7'b11_00105 )
+        if ( {csr_op, csr_imm} != 7'b11_00101 )
         begin
             $error("8.8 CSRRCI Test Failed!");
         end
