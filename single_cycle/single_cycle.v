@@ -5,72 +5,33 @@ module SingleCycle_RISCV (
     input wire rst   // Global reset 
 );
 // PC
-reg  clk;
-reg  rst;
 reg [31:0] next_pc;
 reg [31:0] pc_address;
-
-//PC_Update
 reg [31:0] rs1_data;
 reg jump;
+reg jalr_enable;
 reg branch;
-reg [31:0] pc_address;
 reg [31:0] imm;
 reg zero;
-reg [31:0] next_pc;
-
-
-//inst_mem
-reg [31:0] pc_address;
-reg  clk;
 reg [31:0] instruction;
-
-//imm_gen
-reg [31:0] instruction;
-reg [31:0] imm;
-
-//data_mem
-reg clk;
 reg mem_read;
 reg mem_write;
 reg [31:0] rs2_data;
 reg [31:0] alu_result;
 reg [31:0] instruction;
 reg [31:0] data_mem_data;
-
-//cu
-reg [31:0] instruction;
 reg reg_write;
 reg mem_to_reg;
-reg mem_write;
-reg mem_read;
 reg alu_src;
-reg [3:0] alu_op;
-reg branch;
-reg jump;
+reg [3:0] alu_op; 
 reg [11:0] csr_addr;
 reg csr_write_enable;
 reg [1:0] csr_op;
 reg [4:0] csr_imm;
-//csr_reg
-reg  clk;
-reg  rst;
-reg [11:0] csr_addr;
-reg  csr_write_enable;
-reg [1:0] csr_op;
 reg [2:0] csr_funct3;
-reg [31:0] rs1_data;
-reg [4:0] csr_imm;
 reg [31:0] csr_rdata;
-
-
-//alu
-reg [31:0] rs1_data;
-reg [31:0] rs2_data;
-reg [3:0] alu_op;
-reg  zero;
-reg [31:0] alu_result;
 reg overflow;
+reg [31:0]wirteback_data;
 
 
 
@@ -84,6 +45,7 @@ pc  pc_inst (
 PC_update  PC_update_inst (
              .rs1_data(rs1_data),
              .jump(jump),
+             .jalr_enable(jalr_enable),
              .branch(branch),
              .pc_address(pc_address),
              .imm(imm),
@@ -91,19 +53,13 @@ PC_update  PC_update_inst (
              .next_pc(next_pc)
            );
 
-mux  mux_inst_1 (
-       .in0(in0),
-       .in1(in1),
-       .ctrl(ctrl),
-       .out(out)
+mux  mux_alu(
+       .in0(rs2_data),
+       .in1(imm),
+       .ctrl(alu_src),
+       .out(wirteback_data)
      );
 
-mux  mux_inst_2 (
-       .in0(in0),
-       .in1(in1),
-       .ctrl(ctrl),
-       .out(out)
-     );
 
 inst_mem  inst_mem_inst (
             .pc_address(pc_address),
@@ -135,6 +91,7 @@ CU  CU_inst (
       .alu_src(alu_src),
       .alu_op(alu_op),
       .branch(branch),
+      .jalr_enable(jalr_enable),
       .jump(jump),
       .csr_addr(csr_addr),
       .csr_write_enable(csr_write_enable),
@@ -156,7 +113,7 @@ csr_reg  csr_reg_inst (
 
 ALU  ALU_inst (
        .rs1_data(rs1_data),
-       .rs2_data(rs2_data),
+       .rs2_data(wirteback_data),
        .alu_op(alu_op),
        .zero(zero),
        .alu_result(alu_result),

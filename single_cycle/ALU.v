@@ -67,13 +67,11 @@ module ALU(
                 alu_result = (rs1temp >= rs2temp) ? 1 : 0;//alu_result 是32bits的 這邊要改成32bits嗎?
                 overflow = 0;
             end
-            /**
-            這邊還要加 aluop= 1010 no operation 
+            
             4'b1010: begin // NO OPERATION (no computation needed)
                 alu_result = 32'h00000000;
                 overflow = 0;
             end
-            **/
             default: alu_result = 32'hx;
         endcase
     end
