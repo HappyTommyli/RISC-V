@@ -1,5 +1,3 @@
-<doubaocanvas type="general_code" identifier="tb-CU-full-expected-actual" title="tb_CU with Detailed Expected/Actual Display" genre="">
-    <doubaocanvas-part path="tb_CU_detailed.v" language="verilog" description="Testbench with full expected/actual signal display for each test, plus pass/fail count & 1000ns delay">`timescale 1ns / 1ps
 
 module tb_CU;
     // Inputs
