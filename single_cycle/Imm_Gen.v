@@ -16,6 +16,7 @@ module imm_generator(
     case (op_imm)
       7'b0010011,
       7'b0000011,
+      7'b1110011,
       7'b1100111:
         curr_type = I_TYPE;
 

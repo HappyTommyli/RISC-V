@@ -64,7 +64,7 @@ module ALU(
                 overflow = 0;
             end
             4'b1011:begin //bge
-                alu_result = (rs1temp >= rs2temp) ? 1 : 0;//alu_result 是32bits的 這邊要改成32bits嗎?
+                alu_result = (rs1temp >= rs2temp) ? one1 : zero0;//alu_result 是32bits的 這邊要改成32bits嗎?
                 overflow = 0;
             end
             
