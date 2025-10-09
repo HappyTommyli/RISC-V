@@ -13,7 +13,12 @@ module Data_Memory (
 
   parameter max_size = 4096;
   reg [7:0] memory [0:max_size-1]; //4KB memory
-
+  integer i;
+  initial begin
+    for ( i=0 ;i<max_size ;i= i+1 ) begin
+      memory[i] = 8'd0;
+    end
+  end
   //write
   always @(posedge clk)
   begin
@@ -51,7 +56,7 @@ module Data_Memory (
         3'b000://lb
           data_mem_data = {{24{memory[alu_result][7]}}, memory[alu_result]};
         3'b001://lh
-          data_mem_data = {{16{memory[alu_result+1][7]}}, memory[alu_result+1], memory[alu_result]};
+          data_mem_data = {{16{memory[alu_result+1][7]}}, memory[alu_result+1][7:0], memory[alu_result][7:0]};
         3'b010://lw
           data_mem_data = {memory[alu_result+3], memory[alu_result+2], memory[alu_result+1], memory[alu_result]};
         3'b100://lbu, unsigned

@@ -5,7 +5,7 @@ module Reg_File (
     input [31:0]instruction,
     input [31:0]alu_result,
     input wire mem_to_reg,
-    input [31:0]data_mem_data
+    input [31:0]data_mem_data,
     output reg [31:0]rs1_data,
     output reg [31:0]rs2_data
   );
