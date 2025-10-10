@@ -8,8 +8,7 @@ module Data_Memory (
     output reg [31:0]data_mem_data
   );
 
-  wire [2:0] funct3;
-  assign funct3 = instruction[14:12];
+  wire [2:0] funct3 = instruction[14:12];
 
   parameter max_size = 4096;
   reg [7:0] memory [0:max_size-1]; //4KB memory
