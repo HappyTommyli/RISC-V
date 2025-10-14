@@ -4,7 +4,7 @@ module imm_generator(
   );
 
   wire [6:0]op_imm = instruction [6:0];
-  reg curr_type = 0;
+  reg [2:0]curr_type = 0;
   parameter I_TYPE = 0;
   parameter S_TYPE = 1;
   parameter B_TYPE = 2;
