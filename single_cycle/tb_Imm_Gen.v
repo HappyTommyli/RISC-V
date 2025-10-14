@@ -89,7 +89,7 @@ imm_generator  uut (
     // Instruction format: [31:12]imm, [11:7]rd, [6:0]opcode
     run_test(
       32'b0001_0010_0011_0100_0101_0101_0011_0111,  // Instruction: lui x10, 0x12345     
-      32'b0001_0010_0011_0100_1010_0000_0000_0000,// Expected immediate: 0x12345 << 12   
+      32'b0001_0010_0011_0100_0101_0000_0000_0000,// Expected immediate: 0x12345 << 12   
       "U_TYPE (lui)"
     );
 
