@@ -5,7 +5,7 @@ module imm_generator_tb;
   integer pass_count, fail_count;
 
   // Instantiate the DUT (Device Under Test)
-imm_generator  imm_generator_inst (
+imm_generator  uut (
     .instruction(instruction),
     .imm(imm)
   );
@@ -26,9 +26,6 @@ imm_generator  imm_generator_inst (
       end else begin
         $display("[FAIL] %s - Expected: %32b, Got: %32b", 
                  test_name, expected_imm, imm);
-        $display("code: %32b,%32b,%32b,%32b", 
-        a,b,c,d);
-
         fail_count = fail_count + 1;
       end
     end
