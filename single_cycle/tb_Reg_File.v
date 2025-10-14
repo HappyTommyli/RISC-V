@@ -9,7 +9,7 @@ module tb_Reg_File;
     reg [31:0]instruction;
     reg [31:0]alu_result;
     reg [4:0] mem_to_reg;
-    reg [31:0] [31:0]data_mem_data;
+    reg [31:0] data_mem_data;
 
     // Outputs
     wire [31:0] rs1_data;
