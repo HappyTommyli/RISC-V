@@ -186,7 +186,7 @@ class RV32IAssembler:
         imm_10_5 = (imm_13 >> 5) & 0x3F
         imm_4_1 = (imm_13 >> 1) & 0xF
         
-        machine_code = (imm_12 << 31) | (imm_11 << 30) | (imm_10_5 << 25) | (rs2 << 20) | (rs1 << 15) | (funct3 << 12) | (imm_4_1 << 8) | opcode
+        machine_code = (imm_12 << 31) | (imm_10_5 << 25) | (rs2 << 20) | (rs1 << 15) | (funct3 << 12) | (imm_4_1 << 8) | (imm_11 << 7) | opcode
         return machine_code
 
     def encode_u_type(self, instruction, rd, imm):

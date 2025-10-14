@@ -18,7 +18,6 @@ module SingleCycle_RISCV (
   reg mem_write;
   reg [31:0] rs2_data;
   reg [31:0] alu_result;
-  reg [31:0] instruction;
   reg [31:0] data_mem_data;
   reg reg_write;
   reg mem_to_reg;

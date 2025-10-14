@@ -16,7 +16,7 @@ module imm_generator(
     case (op_imm)
       7'b0010011,
       7'b0000011,
-      7'b1110011,
+      7'b1110011,//csr
       7'b1100111:
         curr_type = I_TYPE;
 
@@ -47,7 +47,7 @@ module imm_generator(
       S_TYPE:
         imm = {{21{instruction[31]}}, instruction[30:25], instruction[11:8], instruction[7]};
       B_TYPE:
-        imm = {{20{instruction[31]}}, instruction[7], instruction[30:25], instruction[11:8], 1'b0};
+        imm = {{19{instruction[31]}}, instruction[7], instruction[30:25], instruction[11:8], 1'b0};
       U_TYPE:
         imm = {instruction[31],instruction[30:20],instruction[19:12],12'b0};
       J_TYPE:
