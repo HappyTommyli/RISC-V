@@ -97,9 +97,9 @@ module tb_ALU;
         rs2_data = 32'h80000001;
         #10;
         test_count = test_count + 1;
-        $display("Test %0d: Expected result: FFFFFFFF, zero: 0, overflow: 1; Actual result: %h, zero: %b, overflow: %b",
+        $display("Test %0d: Expected result: FFFFFFFE, zero: 0, overflow: 1; Actual result: %h, zero: %b, overflow: %b",
                  test_count, alu_result, zero, overflow);
-        if (alu_result == 32'hFFFFFFFF && zero == 1'b0 && overflow == 1'b1)
+        if (alu_result == 32'hFFFFFFFE && zero == 1'b0 && overflow == 1'b1)
             pass_count = pass_count + 1;
         else
             fail_count = fail_count + 1;

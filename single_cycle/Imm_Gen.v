@@ -1,5 +1,5 @@
 module imm_generator(
-    input [31:0]instruction, 
+    input [31:0]instruction,
     output reg [31:0]imm
   );
 
@@ -20,20 +20,20 @@ module imm_generator(
       7'b1100111:
         curr_type = I_TYPE;
 
-      7'b0100011:  
+      7'b0100011:
         curr_type = S_TYPE;
 
-      7'b1100011:  
+      7'b1100011:
         curr_type = B_TYPE;
 
-      7'b0110111, 
-      7'b0010111: 
+      7'b0110111,
+      7'b0010111:
         curr_type = U_TYPE;
 
-      7'b1101111:  
+      7'b1101111:
         curr_type = J_TYPE;
 
-      default:      
+      default:
         curr_type = 0;
     endcase
   end

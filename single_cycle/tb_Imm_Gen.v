@@ -5,7 +5,7 @@ module imm_generator_tb;
   integer pass_count, fail_count;
 
   // Instantiate the DUT (Device Under Test)
-  imm_generator uut (
+imm_generator  uut (
     .instruction(instruction),
     .imm(imm)
   );
