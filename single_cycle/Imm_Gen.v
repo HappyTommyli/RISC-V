@@ -1,6 +1,6 @@
 module imm_generator(
     input [31:0]instruction,
-    output reg [31:0]imm,
+    output reg [31:0]imm
   );
 
   wire [6:0]op_imm = instruction [6:0];
