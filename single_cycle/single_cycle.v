@@ -5,32 +5,32 @@ module SingleCycle_RISCV (
     input wire rst   // Global reset
   );
   // PC
-  reg [31:0] next_pc;
-  reg [31:0] pc_address;
-  reg [31:0] rs1_data;
-  reg jump;
-  reg jalr_enable;
-  reg branch;
-  reg [31:0] imm;
-  reg zero;
-  reg [31:0] instruction;
-  reg mem_read;
-  reg mem_write;
-  reg [31:0] rs2_data;
-  reg [31:0] alu_result;
-  reg [31:0] data_mem_data;
-  reg reg_write;
-  reg mem_to_reg;
-  reg alu_src;
-  reg [3:0] alu_op;
-  reg [11:0] csr_addr;
-  reg csr_write_enable;
-  reg [1:0] csr_op;
-  reg [4:0] csr_imm;
-  reg [2:0] csr_funct3;
-  reg [31:0] csr_rdata;
-  reg overflow;
-  reg [31:0]wirteback_data;
+  wire [31:0] next_pc;
+  wire [31:0] pc_address;
+  wire [31:0] rs1_data;
+  wire jump;
+  wire jalr_enable;
+  wire branch;
+  wire [31:0] imm;
+  wire zero;
+  wire [31:0] instruction;
+  wire mem_read;
+  wire mem_write;
+  wire [31:0] rs2_data;
+  wire [31:0] alu_result;
+  wire [31:0] data_mem_data;
+  wire reg_write;
+  wire mem_to_reg;
+  wire alu_src;
+  wire [3:0] alu_op;
+  wire [11:0] csr_addr;
+  wire csr_write_enable;
+  wire [1:0] csr_op;
+  wire [4:0] csr_imm;
+  wire [2:0] csr_funct3;
+  wire [31:0] csr_rdata;
+  wire overflow;
+  wire [31:0]wirteback_data;
 
 
 
@@ -95,7 +95,8 @@ module SingleCycle_RISCV (
         .csr_addr(csr_addr),
         .csr_write_enable(csr_write_enable),
         .csr_op(csr_op),
-        .csr_imm(csr_imm)
+        .csr_imm(csr_imm),
+        .csr_funct3(csr_funct3)
       );
 
   csr_reg  csr_reg_inst (
