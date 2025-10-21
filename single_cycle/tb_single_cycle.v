@@ -24,13 +24,13 @@ module tb_SingleCycle_RISCV;
     // 0x008: add x3, x1, x2   (x3 = 12)
     // 0x00C: sw x3, 0(x0)     (store 12 at memory address 0)
     // 0x010: lw x4, 0(x0)     (load from memory address 0 to x4)
-    initial begin
-        dut.inst_mem_inst.memory[0] = 32'h00500093;  // addi x1, x0, 5
-        dut.inst_mem_inst.memory[1] = 32'h00700113;  // addi x2, x0, 7
-        dut.inst_mem_inst.memory[2] = 32'h002081b3;  // add x3, x1, x2
-        dut.inst_mem_inst.memory[3] = 32'h00302023;  // sw x3, 0(x0)
-        dut.inst_mem_inst.memory[4] = 32'h00002203;  // lw x4, 0(x0)
-    end
+//    initial begin
+//        dut.inst_mem_inst.memory[0] = 32'h00500093;  // addi x1, x0, 5
+//        dut.inst_mem_inst.memory[1] = 32'h00700113;  // addi x2, x0, 7
+//        dut.inst_mem_inst.memory[2] = 32'h002081b3;  // add x3, x1, x2
+//        dut.inst_mem_inst.memory[3] = 32'h00302023;  // sw x3, 0(x0)
+//        dut.inst_mem_inst.memory[4] = 32'h00002203;  // lw x4, 0(x0)
+//    end
 
     // Test sequence
     initial begin
