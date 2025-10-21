@@ -60,11 +60,18 @@ module SingleCycle_RISCV (
        );
 
 
-  inst_mem  inst_mem_inst (
-              .pc_address(pc_address),
-              .clk(clk),
-              .instruction(instruction)
-            );
+     inst_mem  inst_mem_inst (
+                 .pc_address(pc_address),
+                 .clk(clk),
+                 .instruction(instruction)
+               );
+
+//  blk_mem_gen_0 instruction_memory (
+//                  .clka  (clk),       // 时钟信号，与CPU时钟同步
+//                  .ena   (1'b1),      // 使能信号：始终有效（1'b1）
+//                  .addra (pc_address),        // 地址输入：连接程序计数器PC
+//                  .douta (instruction)// 指令输出：连接到CPU的指令译码模块
+//                );
 
   imm_generator  imm_generator_inst (
                    .instruction(instruction),
