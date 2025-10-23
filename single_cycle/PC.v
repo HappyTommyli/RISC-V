@@ -5,7 +5,7 @@ module pc (
     output reg [31:0] pc_address
   );
 
-  always @(posedge clk or posedge rst)
+  always @(negedge clk or posedge rst)
   begin
     if (rst)
     begin

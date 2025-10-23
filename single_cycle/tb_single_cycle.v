@@ -14,7 +14,7 @@ module tb_SingleCycle_RISCV;
 
     // Clock generation
     always begin
-        #5 clk = ~clk;  // 10ns period (100 MHz)
+        #20 clk = ~clk;  // 10ns period (100 MHz)
     end
 
     // Load a simple test program into instruction memory
