@@ -72,7 +72,7 @@ module ALU(
                 alu_result = 32'h00000000;
                 overflow = 0;
             end
-            default: alu_result = 32'hX;
+            default: alu_result = 32'hx;
         endcase
     end
     assign zero = (alu_result == 0) ? 1 : 0;

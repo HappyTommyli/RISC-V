@@ -1,10 +1,11 @@
+
 module imm_generator(
-    input [31:0]instruction,
+    input [31:0]instruction, 
     output reg [31:0]imm
   );
 
   wire [6:0]op_imm = instruction [6:0];
-  reg [2:0]curr_type = 0;
+  reg [2:0] curr_type = 0;
   parameter I_TYPE = 0;
   parameter S_TYPE = 1;
   parameter B_TYPE = 2;
@@ -16,24 +17,24 @@ module imm_generator(
     case (op_imm)
       7'b0010011,
       7'b0000011,
-      7'b1110011,//csr
+      7'b1110011,
       7'b1100111:
         curr_type = I_TYPE;
 
-      7'b0100011:
+      7'b0100011:  
         curr_type = S_TYPE;
 
-      7'b1100011:
+      7'b1100011:  
         curr_type = B_TYPE;
 
-      7'b0110111,
-      7'b0010111:
+      7'b0110111, 
+      7'b0010111: 
         curr_type = U_TYPE;
 
-      7'b1101111:
+      7'b1101111:  
         curr_type = J_TYPE;
 
-      default:
+      default:      
         curr_type = 0;
     endcase
   end
@@ -43,15 +44,15 @@ module imm_generator(
   begin
     case (curr_type)
       I_TYPE:
-        imm = {{21{instruction[31]}}, instruction[30:25], instruction[24:21], instruction[20]};
+        imm = {{21{instruction[31]}}, instruction[30:20]};
       S_TYPE:
-        imm = {{21{instruction[31]}}, instruction[30:25], instruction[11:8], instruction[7]};
+        imm = {{21{instruction[31]}}, instruction[30:25], instruction[11:7]};
       B_TYPE:
         imm = {{20{instruction[31]}}, instruction[7], instruction[30:25], instruction[11:8], 1'b0};
       U_TYPE:
-        imm = {instruction[31],instruction[30:20],instruction[19:12],12'b0};
+        imm = {instruction[31:12],12'b0};
       J_TYPE:
-        imm= {instruction[31],instruction[19:12],instruction[20],instruction[30:25],instruction[24:21],1'b0};
+        imm= {{11{instruction[31]}},instruction[31],instruction[19:12],instruction[20],instruction[30:25],instruction[24:21],1'b0};
       default:
         imm=32'b0;
 
