@@ -20,7 +20,7 @@ module PC_update (
             next_pc = pc_address + imm;
         
         4'b0011, 4'b0111: 
-            next_pc = pc_address + imm;
+            next_pc = pc_address + {imm[30:0],1'b0};
 
       default: next_pc = pc_address + 32'b100;
     endcase
