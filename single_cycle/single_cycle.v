@@ -30,7 +30,7 @@ module SingleCycle_RISCV (
   wire [2:0] csr_funct3;
   wire [31:0] csr_rdata;
   wire overflow;
-  wire [31:0]wirteback_data;
+  wire [31:0]writeback_data;
 
 
 
@@ -68,8 +68,7 @@ module SingleCycle_RISCV (
 
   blk_mem_gen_0 instruction_memory (
                   .clka  (clk),       // 时钟信号，与CPU时钟同步
-                  .ena   (1'b1),      // 使能信号：始终有效（1'b1）
-                  .addra ({2'b0,pc_address[31:2]}),        // 地址输入：连接程序计数器PC
+                  .addra (pc_address[14:2]),        // 地址输入：连接程序计数器PC
                   .douta (instruction)// 指令输出：连接到CPU的指令译码模块
                 );
 
@@ -120,7 +119,7 @@ module SingleCycle_RISCV (
 
   ALU  ALU_inst (
          .rs1_data(rs1_data),
-         .rs2_data(wirteback_data),
+         .rs2_data(writeback_data),
          .alu_op(alu_op),
          .zero(zero),
          .alu_result(alu_result),
