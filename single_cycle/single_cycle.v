@@ -30,7 +30,7 @@ module SingleCycle_RISCV (
   wire [2:0] csr_funct3;
   wire [31:0] csr_rdata;
   wire overflow;
-  wire [31:0]wirteback_data;
+  wire [31:0]writeback_data;
 
 
 
@@ -56,7 +56,7 @@ module SingleCycle_RISCV (
          .in0(rs2_data),
          .in1(imm),
          .ctrl(alu_src),
-         .out(wirteback_data)
+         .out(writeback_data)
        );
 
 
@@ -120,7 +120,7 @@ module SingleCycle_RISCV (
 
   ALU  ALU_inst (
          .rs1_data(rs1_data),
-         .rs2_data(wirteback_data),
+         .rs2_data(writeback_data),
          .alu_op(alu_op),
          .zero(zero),
          .alu_result(alu_result),
