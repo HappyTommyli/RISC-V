@@ -27,7 +27,7 @@ module Reg_File (
     end
   //write x0 not allowed
   //所以這邊always 要不要用posedge clk?
-   always @(posedge clk or posedge rst)begin
+   always @(posedge clk)begin
     if(reg_write && rd_addr != 5'd0)
     begin
       register[rd_addr] <= mem_to_reg ? data_mem_data : alu_result;
