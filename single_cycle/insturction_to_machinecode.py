@@ -375,15 +375,21 @@ class RV32IAssembler:
         except Exception as e:
             raise ValueError(f"Assembly failed: {str(e)} (original instruction: {line_clean})")
 
-    # Core functionality: Read custom ASM file and generate machine code to TXT
-    def assemble_file(self, input_asm_path, output_txt_path):
+    # Core functionality: Read custom ASM file and generate machine code to TXT and COE
+    def assemble_file(self, input_asm_path, output_txt_path, output_coe_path=None):
         """
-        Assembles a user-written ASM file into machine code and writes to a TXT file
+        Assembles a user-written ASM file into machine code and writes to TXT and COE files
         
         Parameters:
             input_asm_path: Path to input ASM file (user-defined instruction file)
             output_txt_path: Path to output TXT file (32-bit binary per line)
+            output_coe_path: Path to output COE file (optional, auto-generated if None)
         """
+        # Auto-generate COE path if not provided
+        if output_coe_path is None:
+            base_path = os.path.splitext(output_txt_path)[0]
+            output_coe_path = base_path + '.coe'
+
         # Read user's ASM file
         try:
             with open(input_asm_path, 'r', encoding='utf-8') as f:
@@ -416,10 +422,24 @@ class RV32IAssembler:
             for code in machine_codes:
                 f.write(f"{code:032b}\n")
 
+        # Write machine code to COE file (Xilinx memory initialization)
+        with open(output_coe_path, 'w', encoding='utf-8') as f:
+            f.write("memory_initialization_radix=16;\n")
+            f.write("memory_initialization_vector=\n")
+            
+            for i, code in enumerate(machine_codes):
+                # Last entry ends with semicolon, others with comma
+                if i == len(machine_codes) - 1:
+                    f.write(f"{code:08x};")
+                else:
+                    f.write(f"{code:08x},\n")
+        
         # Output summary
         print("=" * 80)
         print(f"Assembly completed! Generated {len(machine_codes)} machine code instructions")
-        print(f"Machine code saved to: {output_txt_path}")
+        print(f"Machine code saved to:")
+        print(f"  - Binary TXT file: {output_txt_path}")
+        print(f"  - COE file: {output_coe_path}")
         print("=" * 80)
         return True
 
