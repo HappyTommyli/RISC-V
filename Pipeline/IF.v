@@ -6,6 +6,7 @@ module IF (
     input jump,
     input jalr_enable,
     input branch,
+    input zero,
 
     input [31:0]  rs1_data,
     input [31:0]  imm,
@@ -24,6 +25,10 @@ module IF (
     reg [31:0] pc;
     wire [31:0] next_pc;
 
+// IF/ID pipeline registers
+    reg [31:0] if_id_pc_reg;
+    reg [31:0] if_id_instr_reg;
+
     // Use the PC_update module
     PC_update pc_update_inst (
         .rs1_data(rs1_data),
@@ -37,10 +42,15 @@ module IF (
     );
 
     always @(posedge clk or posedge rst) begin
-        if (rst)
+        if (rst)begin
             pc <= 32'h00000000;
-        else
+            if_id_pc_reg <= 32'h00000000;
+            if_id_instr_reg <= 32'h00000000;
+        end else begin
             pc <= next_pc;
+            if_id_pc_reg <= pc;
+            if_id_instr_reg <= instr_data;
+        end
     end
 
     // Output
