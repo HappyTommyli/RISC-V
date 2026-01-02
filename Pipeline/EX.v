@@ -25,5 +25,29 @@ module EX(
     output [31:0] ex_mem_instruction
 );
 
+wire [31:0] alu_b;
+assign alu_b = (alu_src) ? imm : rs2_data;
+
+wire zero;
+wire signed [31:0] alu_result;
+wire overflow;
+
+ALU alu_unit(
+    .rs1_data(rs1_data),
+    .rs2_data(alu_b),
+    .alu_op(alu_op),
+    .zero(zero),
+    .alu_result(alu_result),
+    .overflow(overflow)
+);
+
+assign ex_alu_result = alu_result;
+assign ex_rs2_data = rs2_data;
+assign ex_rd = rd;
+assign ex_reg_write = reg_write;
+assign ex_mem_read = mem_read;
+assign ex_mem_write = mem_write;
+assign ex_mem_reg = mem_reg;
+assign ex_mem_instruction = instruction;
 
 endmodule
