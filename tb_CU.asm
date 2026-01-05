@@ -1,245 +1,103 @@
-# =====================================================
-# =====================================================
 
-# =====================================================
-# Group 1: R-type instructions (10)
-# Opcode: 0110011
-# =====================================================
-
-# 1. ADD rd, rs1, rs2 → ADD x1, x2, x3
-# Machine Code: 0x003100B3
-add x1, x2, x3
-
-# 2. SUB rd, rs1, rs2 → SUB x1, x2, x3  
-# Machine Code: 0x403100B3
-sub x1, x2, x3
-
-# 3. SLL rd, rs1, rs2 → SLL x1, x2, x3
-# Machine Code: 0x003110B3
-sll x1, x2, x3
-
-# 4. SLT rd, rs1, rs2 → SLT x1, x2, x3
-# Machine Code: 0x003120B3
-slt x1, x2, x3
-
-# 5. SLTU rd, rs1, rs2 → SLTU x1, x2, x3
-# Machine Code: 0x003130B3
-sltu x1, x2, x3
-
-# 6. XOR rd, rs1, rs2 → XOR x1, x2, x3
-# Machine Code: 0x003140B3
-xor x1, x2, x3
-
-# 7. SRL rd, rs1, rs2 → SRL x1, x2, x3
-# Machine Code: 0x003150B3
-srl x1, x2, x3
-
-# 8. SRA rd, rs1, rs2 → SRA x1, x2, x3
-# Machine Code: 0x403150B3
-sra x1, x2, x3
-
-# 9. OR rd, rs1, rs2 → OR x1, x2, x3
-# Machine Code: 0x003160B3
-or x1, x2, x3
-
-# 10. AND rd, rs1, rs2 → AND x1, x2, x3
-# Machine Code: 0x003170B3
-and x1, x2, x3
-
-
-# =====================================================
-# Group 2: I-type instructions (Arithmetic/Shift) - 9
-# Opcode: 0010011
-# =====================================================
-
-# 11. ADDI rd, rs1, imm → ADDI x1, x2, 4
-# Machine Code: 
-addi x1, x2, 4
-
-# 12. SLTI rd, rs1, imm → SLTI x1, x2, 4
-# Machine Code:
-slti x1, x2, 4
-
-# 13. SLTIU rd, rs1, imm → SLTIU x1, x2, 4
-# Machine Code: 
-sltiu x1, x2, 4
-
-# 14. XORI rd, rs1, imm → XORI x1, x2, 4
-# Machine Code: 
-xori x1, x2, 4
-
-# 15. ORI rd, rs1, imm → ORI x1, x2, 4
-# Machine Code: 
-ori x1, x2, 4
-
-# 16. ANDI rd, rs1, imm → ANDI x1, x2, 4
-# Machine Code: 
-andi x1, x2, 4
-
-# 17. SLLI rd, rs1, imm → SLLI x1, x2, 4
-# Machine Code: 
-slli x1, x2, 4
-
-# 18. SRLI rd, rs1, imm → SRLI x1, x2, 4
-# Machine Code: 
-srli x1, x2, 4
-
-# 19. SRAI rd, rs1, imm → SRAI x1, x2, 4
-# Machine Code: 
-srai x1, x2, 4
-
-
-# =====================================================
-# Group 3: Load instructions - 5
-# Opcode: 0000011
-# =====================================================
-
-# 20. LB rd, imm(rs1) → LB x1, 4(x2)
-# Machine Code: 
-lb x1, 4(x2)
-
-# 21. LH rd, imm(rs1) → LH x1, 4(x2)
-# Machine Code: 
-lh x1, 4(x2)
-
-# 22. LW rd, imm(rs1) → LW x1, 4(x2)
-# Machine Code: 
-lw x1, 4(x2)
-
-# 23. LBU rd, imm(rs1) → LBU x1, 4(x2)
-# Machine Code: 
-lbu x1, 4(x2)
-
-# 24. LHU rd, imm(rs1) → LHU x1, 4(x2)
-# Machine Code: 
-lhu x1, 4(x2)
-
-
-# =====================================================
-# Group 4: Store instructions - 3
-# Opcode: 0100011
-# =====================================================
-
-# 25. SB rs2, imm(rs1) → SB x3, 4(x2)
-# Machine Code: 
-sb x3, 4(x2)
-
-# 26. SH rs2, imm(rs1) → SH x3, 4(x2)
-# Machine Code: 
-sh x3, 4(x2)
-
-# 27. SW rs2, imm(rs1) → SW x3, 4(x2)
-# Machine Code: 
-sw x3, 4(x2)
-
-
-# =====================================================
-# Group 5: B-type instructions - 6
-# Opcode: 1100011
-# =====================================================
-
-# 28. BEQ rs1, rs2, imm → BEQ x2, x3, 4
-# Machine Code: 
-beq x2, x3, 4
-
-# 29. BNE rs1, rs2, imm → BNE x2, x3, 4
-# Machine Code: 
-bne x2, x3, 4
-
-# 30. BLT rs1, rs2, imm → BLT x2, x3, 4
-# Machine Code: 
-blt x2, x3, 4
-
-# 31. BGE rs1, rs2, imm → BGE x2, x3, 4
-# Machine Code: 
-bge x2, x3, 4
-
-# 32. BLTU rs1, rs2, imm → BLTU x2, x3, 4
-# Machine Code: 
-bltu x2, x3, 4
-
-# 33. BGEU rs1, rs2, imm → BGEU x2, x3, 4
-# Machine Code:
-bgeu x2, x3, 4
-
-
-# =====================================================
-# Group 6: Jump instructions - 2
-# =====================================================
-
-# 34. JAL rd, imm → JAL x1, 4
-# Machine Code: 
-jal x1, 4
-
-# 35. JALR rd, imm(rs1) → JALR x1, 4(x2)
-# Machine Code: 
-jalr x1, 4(x2)
-
-
-# =====================================================
-# Group 7: Barrier instructions - 2
-# Opcode: 0001111
-# =====================================================
-
-# 36. FENCE → FENCE
-# Machine Code: 0x0000000F
-fence
-
-# 37. FENCE.I → FENCE.I
-# Machine Code: 0x0000100F
-fence.i
-
-
-# =====================================================
-# Group 8: Upper instructions - 2
-# =====================================================
-
-# 38. LUI rd, imm → LUI x1, 4
-# Machine Code:
-lui x1, 4
-
-# 39. AUIPC rd, imm → AUIPC x1, 4
-# Machine Code: 
-auipc x1, 4
-
-
-# =====================================================
-# Group 9: SYSTEM instructions - 8
-# Opcode: 1110011
-# =====================================================
-
-# 40. ECALL → ECALL
-# Machine Code: 0x00000073
-ecall
-
-# 41. EBREAK → EBREAK
-# Machine Code: 0x00100073
-ebreak
-
-# 42. CSRRW rd, csr, rs1 → CSRRW x1, 0x123, x2
-# Machine Code: 0x12320073
-csrrw x1, 0x123, x2
-
-# 43. CSRRS rd, csr, rs1 → CSRRS x1, 0x123, x2
-# Machine Code: 0x12311073
-csrrs x1, 0x123, x2
-
-# 44. CSRRC rd, csr, rs1 → CSRRC x1, 0x123, x2
-# Machine Code: 0x12312073
-csrrc x1, 0x123, x2
-
-# 45. CSRRWI rd, csr, imm → CSRRWI x1, 0x123, 5
-# Machine Code: 0x1232D0F3
-csrrwi x1, 0x123, 5
-
-# 46. CSRRSI rd, csr, imm → CSRRSI x1, 0x123, 5
-# Machine Code: 0x1232E0F3
-csrrsi x1, 0x123, 5
-
-# 47. CSRRCI rd, csr, imm → CSRRCI x1, 0x123, 5
-# Machine Code: 0x1232F0F3
-csrrci x1, 0x123, 5
-
-# =====================================================
-# End of tb_CU.asm - 47 RV32I Instructions 
-# =====================================================
+#| Instruction | Machine Code|
+# R-type : funct7|rs2|rs1|funct3|rd|opcode
+# I_type : imm[11:0]|rs1|funct3|rd|opcode
+# S-type : imm[11:5]|rs2|rs1|funct3|imm[4:0]|opcode
+# U-type : imm[31:12]|rd|opcode #upper 20 bit
+# B-tyep : imm[12]|imm[10:5]|rs2|rs1|funct3|imm[4:1]|imm[11]|opcode
+# J-type : imm[20]|imm[10:1]|imm[11]|imm[19:12]|rd|opcode
+                 
+#| lui | 0b 00000000000000000001 00101 0110111 | 0x000012B7   
+lui t0, 0x1 
+#| auipc | 0b 00000000000000000001 00101 0010111 | 0x00001297   
+auipc t0, 0x1 
+#| jal | 0b 0 0000000010 0 00000000 00000 1101111 | 0x0040006F   
+jal x0, 4 
+#| jalr | 0b 000000000000 00001 000 00000 1100111 | 0x00008067    
+jalr x0, 0(x1) 
+#| lb | 0b 000000000000 00110 000 00101 0000011 | 0x00030283   
+lb t0, 0(t1) 
+#| lh | 0b 000000000000 00110 001 00101 0000011 | 0x00031283 
+lh t0, 0(t1) 
+#| lw | 0b 000000000000 00110 010 00101 0000011 | 0x00032283  
+lw t0, 0(t1) 
+#| lbu | 0b 000000000000 00110 100 00101 0000011 | 0x00034283   
+lbu t0, 0(t1) 
+#| lhu | 0b 000000000000 00110 101 00101 0000011 | 0x00035283    
+lhu t0, 0(t1) 
+#| addi | 0b 000000000001 00110 000 00101 0010011 | 0x00130293    
+addi t0, t1, 1 
+#| slti | 0b 000000000001 00110 010 00101 0010011 | 0x00132293  
+slti t0, t1, 1 
+#| sltiu | 0b 000000000001 00110 011 00101 0010011 | 0x00133293 
+sltiu t0, t1, 1 
+#| xori | 0b 000000000001 00110 100 00101 0010011 | 0x00134293   
+xori t0, t1, 1 
+#| ori | 0b 000000000001 00110 110 00101 0010011 | 0x00136293   
+ori t0, t1, 1
+#| andi | 0b 000000000001 00110 111 00101 0010011 | 0x00137293  
+andi t0, t1, 1 
+#| slli | 0b 0000000 00001 00110 001 00101 0010011 | 0x00131293 
+slli t0, t1, 1 
+#| srli | 0b 0000000 00001 00110 101 00101 0010011 | 0x00135293   
+srli t0, t1, 1 
+#| srai | 0b 0100000 00001 00110 101 00101 0010011 | 0x40135293
+srai t0, t1, 1 
+#| beq | 0b 0 000000 00110 00101 000 0010 0 1100011 | 0x00628263   
+beq t0, t1, 4 
+#| bne | 0b 0 000000 00110 00101 001 0010 0 1100011 | 0x00629263   
+bne t0, t1, 4 
+#| blt | 0b 0 000000 00110 00101 100 0010 0 1100011 | 0x0062C263   
+blt t0, t1, 4 
+#| bge | 0b 0 000000 00110 00101 101 0010 0 1100011 | 0x0062D263   
+bge t0, t1, 4 
+#| bltu | 0b 0 000000 00110 00101 110 0010 0 1100011 | 0x0062E263    
+bltu t0, t1, 4 
+#| bgeu | 0b 0 000000 00110 00101 111 0010 0 1100011 | 0x0062F263   
+bgeu t0, t1, 4 
+#| sb | 0b 0000000 00101 00110 000 00000 0100011 | 0x00530023 
+sb t0, 0(t1) 
+#| sh | 0b 0000000 00101 00110 001 00000 0100011 | 0x00531023   
+sh t0, 0(t1) 
+#| sw | 0b 0000000 00101 00110 010 00000 0100011 | 0x00532023   
+sw t0, 0(t1) 
+#| add | 0b 0000000 00111 00110 000 00101 0110011 | 0x007302B3   
+add t0, t1, t2 
+#| sub | 0b 0100000 00111 00110 000 00101 0110011 | 0x407302B3   
+sub t0, t1, t2
+#| sll | 0b 0000000 00111 00110 001 00101 0110011 | 0x007312B3    
+sll t0, t1, t2 
+#| slt | 0b 0000000 00111 00110 010 00101 0110011 | 0x007322B3    
+slt t0, t1, t2 
+#| sltu | 0b 0000000 00111 00110 011 00101 0110011 | 0x007332B3   
+sltu t0, t1, t2 
+#| xor | 0b 0000000 00111 00110 100 00101 0110011 | 0x007342B3    
+xor t0, t1, t2 
+#| srl | 0b 0000000 00111 00110 101 00101 0110011 | 0x007352B3    
+srl t0, t1, t2 
+#| sra | 0b 0100000 00111 00110 101 00101 0110011 | 0x407352B3   
+sra t0, t1, t2 
+#| or | 0b 0000000 00111 00110 110 00101 0110011 | 0x007362B3    
+or t0, t1, t2 
+#| and | 0b 0000000 00111 00110 111 00101 0110011 | 0x007372B3   
+and t0, t1, t2 
+#| fence | 0b 0000 1111 1111 00000 000 00000 0001111 | 0x0FF0000F    
+fence 
+#| fence.i | 0b 000000000000 00000 001 00000 0001111 | 0x0000100F  
+fence.i 
+#| ecall | 0b 000000000000 00000 000 00000 1110011 | 0x00000073   
+ecall 
+#| ebreak | 0b 000000000001 00000 000 00000 1110011 | 0x00100073   
+ebreak 
+#| csrrw | 0b 001100000000 00110 001 00101 1110011 | 0x300312F3    
+csrrw t0, mstatus, t1 
+#| csrrs | 0b 001100000000 00110 010 00101 1110011 | 0x300322F3    
+csrrs t0, mstatus, t1 
+#| csrrc | 0b 001100000000 00110 011 00101 1110011 | 0x300332F3
+csrrc t0, mstatus, t1 
+#| csrrwi | 0b 001100000000 00001 101 00101 1110011 | 0x3000D2F3   
+csrrwi t0, mstatus, 1 
+#| csrrsi | 0b 001100000000 00001 110 00101 1110011 | 0x3000E2F3  
+csrrsi t0, mstatus, 1
+#| csrrci | 0b 001100000000 00001 111 00101 1110011 | 0x3000F2F3   
+csrrci t0, mstatus, 1 
