@@ -22,7 +22,7 @@ module Reg_File (
     end
   //read x0, always zero
       always @(*) begin
-        rs1_data = (rs1_addr == 5'd0) ? 32'h00000000 : register[rs1_addr];
+        rs1_data = (rs1_addr == 5'd0) ? 32'h00000000 : register[rs1_addr];//change register, not rs1_data
         rs2_data = (rs2_addr == 5'd0) ? 32'h00000000 : register[rs2_addr];
     end
   //write x0 not allowed
