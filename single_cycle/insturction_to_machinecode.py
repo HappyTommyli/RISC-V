@@ -169,7 +169,7 @@ class RV32IAssembler:
         )
 
     def encode_u_type(self, instr, rd, imm):
-        imm_20 = (imm >> 12) & 0xFFFFF
+        imm_20 = imm & 0xFFFFF
         return (
             (imm_20 << 12) |
             ((rd & 0x1F) << 7) |
