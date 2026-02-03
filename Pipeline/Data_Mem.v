@@ -8,7 +8,7 @@ module Data_Memory (
     output reg [31:0] data_mem_data
 );
     wire [2:0] funct3 = instruction[14:12];
-    parameter max_size = 16384; // 16KB data memory for FYP-scale programs
+    parameter max_size = 16384;
     reg [7:0] memory [0:max_size-1];
     integer i;
 

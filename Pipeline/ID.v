@@ -2,6 +2,7 @@
 module ID(
 input clk,
 input rst,
+input flush,
 
 // From IF/ID
 input [31:0] if_id_pc,
@@ -15,6 +16,7 @@ input [31:0] wb_data,
 // Control outputs to EX/MEM/WB (from CU)
 output [3:0] id_alu_op,
 output id_alu_src,
+output id_alu_src1,
 output id_reg_write,
 output id_mem_read,
 output id_mem_write,
@@ -44,7 +46,7 @@ imm_generator imm_gen_inst (
 //RegFile
     wire [31:0] rs1_data;
     wire [31:0] rs2_data;
-register_file reg_file_inst (
+Reg_File reg_file_inst (
     .clk        (clk),
     .rst        (rst),
 
@@ -64,18 +66,20 @@ register_file reg_file_inst (
     wire mem_write;
     wire mem_read;
     wire alu_src;
+    wire alu_src1;
     wire [3:0] alu_op;
     wire branch;
     wire jalr_enable;
     wire jump;
-control_unit cu_inst (
+CU cu_inst (
     .instruction(if_id_instr),
     .reg_write  (reg_write),
-    .mem_to_reg (id_mem_reg),
+    .mem_to_reg (mem_to_reg),
     .mem_write  (mem_write),
     .mem_read   (mem_read),
     .alu_src    (alu_src),
-    .alu_op     (alu_op)
+    .alu_src1   (alu_src1),
+    .alu_op     (alu_op),
     .branch     (branch),
     .jump       (jump),
     .jalr_enable(jalr_enable),
@@ -90,6 +94,7 @@ control_unit cu_inst (
     assign id_mem_write = mem_write;
     assign id_mem_reg = mem_to_reg;
     assign id_alu_src = alu_src;
+    assign id_alu_src1 = alu_src1;
     assign id_alu_op = alu_op;
     assign id_branch = branch;
     assign id_jump = jump;
@@ -103,7 +108,7 @@ control_unit cu_inst (
     reg [31:0] id_ex_instr_reg;
 
 always @(posedge clk or posedge rst) begin
-    if (rst) begin
+    if (rst || flush) begin
         id_ex_pc_reg    <= 32'h00000000;
         id_ex_rs1_reg   <= 32'h00000000;
         id_ex_rs2_reg   <= 32'h00000000;

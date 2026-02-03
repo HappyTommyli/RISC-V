@@ -1,15 +1,15 @@
 module MEM(
-    input clk;
-    input rst;
+    input clk,
+    input rst,
 
     // From EX
-    input [31:0] alu_result;
-    input [31:0] rs2_data;
-    input [4:0] rd;
-    input reg_write;
-    input mem_write, mem_read, mem_reg;
+    input [31:0] alu_result,
+    input [31:0] rs2_data,
+    input [4:0] rd,
+    input reg_write,
+    input mem_write, mem_read, mem_reg,
 
-    input [31:0] ex_mem_instruction; 
+    input [31:0] ex_mem_instruction,
 
     // To WB
     output [31:0] mem_data,

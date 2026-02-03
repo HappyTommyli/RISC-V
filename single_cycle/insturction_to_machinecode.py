@@ -89,17 +89,39 @@ class RV32IAssembler:
                 pass
         raise ValueError(f"Invalid register: '{reg_str}'")
 
-    # Parse immediate values
+    # Parse immediate values (signed integer)
     def parse_immediate(self, imm_str):
         imm_str = imm_str.strip()
         try:
             if imm_str.startswith(('0x', '-0x')):
-                imm = int(imm_str, 16)
-            else:
-                imm = int(imm_str, 10)
-            return imm & 0xFFFFFFFF  # 32-bit unsigned representation
+                return int(imm_str, 16)
+            return int(imm_str, 10)
         except ValueError:
             raise ValueError(f"Invalid immediate: '{imm_str}'")
+
+    def _check_signed_range(self, imm, bits, label):
+        min_val = -(1 << (bits - 1))
+        max_val = (1 << (bits - 1)) - 1
+        if not (min_val <= imm <= max_val):
+            raise ValueError(f"{label} immediate out of range ({min_val}..{max_val}), got {imm}")
+
+    def _normalize_u_immediate(self, imm):
+        # Accept either 20-bit value or 32-bit value aligned by 12 bits (auto >> 12)
+        if -(1 << 19) <= imm <= (1 << 19) - 1:
+            return imm & 0xFFFFF
+        if (imm & 0xFFF) == 0:
+            shifted = imm >> 12
+            if -(1 << 19) <= shifted <= (1 << 19) - 1:
+                return shifted & 0xFFFFF
+        raise ValueError(f"U-type immediate out of range; use 20-bit or 12-bit-aligned value, got {imm}")
+
+    def _parse_label_or_imm(self, token, labels, curr_addr):
+        try:
+            return self.parse_immediate(token)
+        except ValueError:
+            if labels is not None and token in labels:
+                return labels[token] - curr_addr
+            raise ValueError(f"Unknown label or immediate: '{token}'")
 
     # Parse CSR registers
     def parse_csr(self, csr_str):
@@ -229,7 +251,7 @@ class RV32IAssembler:
         )
 
     # Assemble a single instruction (standard instructions only)
-    def assemble_instr(self, line):
+    def assemble_instr(self, line, labels=None, curr_addr=0):
         line_clean = re.sub(r'//.*$|#.*$', '', line.strip())
         if not line_clean:
             return None
@@ -244,7 +266,8 @@ class RV32IAssembler:
                 if len(operands) != 2:
                     raise ValueError(f"Requires 2 operands (rd, imm), got {len(operands)}")
                 rd = self.parse_register(operands[0])
-                imm = self.parse_immediate(operands[1])
+                imm_raw = self.parse_immediate(operands[1])
+                imm = self._normalize_u_immediate(imm_raw)
                 return self.encode_u_type(instr, rd, imm)
 
             # J-type instructions
@@ -252,7 +275,8 @@ class RV32IAssembler:
                 if len(operands) != 2:
                     raise ValueError(f"Requires 2 operands (rd, imm), got {len(operands)}")
                 rd = self.parse_register(operands[0])
-                imm = self.parse_immediate(operands[1])
+                imm = self._parse_label_or_imm(operands[1], labels, curr_addr)
+                self._check_signed_range(imm, 21, "J-type")
                 return self.encode_j_type(instr, rd, imm)
 
             # I-type instructions: JALR
@@ -264,6 +288,7 @@ class RV32IAssembler:
                 if not match:
                     raise ValueError(f"Invalid format: expected 'offset(rs1)', got '{operands[1]}'")
                 imm = self.parse_immediate(match.group(1))
+                self._check_signed_range(imm, 12, "I-type")
                 rs1 = self.parse_register(match.group(2))
                 return self.encode_i_type(instr, rd, rs1, imm)
 
@@ -276,6 +301,7 @@ class RV32IAssembler:
                 if not match:
                     raise ValueError(f"Invalid format: expected 'offset(rs1)', got '{operands[1]}'")
                 imm = self.parse_immediate(match.group(1))
+                self._check_signed_range(imm, 12, "I-type")
                 rs1 = self.parse_register(match.group(2))
                 return self.encode_i_type(instr, rd, rs1, imm)
 
@@ -286,6 +312,7 @@ class RV32IAssembler:
                 rd = self.parse_register(operands[0])
                 rs1 = self.parse_register(operands[1])
                 imm = self.parse_immediate(operands[2])
+                self._check_signed_range(imm, 12, "I-type")
                 return self.encode_i_type(instr, rd, rs1, imm)
 
             # I-type instructions: Shifts (including SRAI)
@@ -311,7 +338,8 @@ class RV32IAssembler:
                     raise ValueError(f"Requires 3 operands (rs1, rs2, imm), got {len(operands)}")
                 rs1 = self.parse_register(operands[0])
                 rs2 = self.parse_register(operands[1])
-                imm = self.parse_immediate(operands[2])
+                imm = self._parse_label_or_imm(operands[2], labels, curr_addr)
+                self._check_signed_range(imm, 13, "B-type")
                 return self.encode_b_type(instr, rs1, rs2, imm)
 
             # S-type instructions
@@ -323,6 +351,7 @@ class RV32IAssembler:
                 if not match:
                     raise ValueError(f"Invalid format: expected 'offset(rs1)', got '{operands[1]}'")
                 imm = self.parse_immediate(match.group(1))
+                self._check_signed_range(imm, 12, "S-type")
                 rs1 = self.parse_register(match.group(2))
                 return self.encode_s_type(instr, rs2, rs1, imm)
 
@@ -398,16 +427,40 @@ class RV32IAssembler:
             raise FileNotFoundError(f"Input ASM file not found: {input_asm_path}")
 
         machine_codes = []
+        labels = {}
+        instructions = []
+        pc_addr = 0
+
+        # First pass: collect labels and instruction lines
+        for line_num, line in enumerate(lines, 1):
+            line_clean = re.sub(r'//.*$|#.*$', '', line.strip())
+            if not line_clean:
+                continue
+
+            # Extract labels (support multiple labels on one line)
+            while True:
+                match = re.match(r'^\s*([A-Za-z_]\w*):', line_clean)
+                if not match:
+                    break
+                label = match.group(1)
+                if label in labels:
+                    raise ValueError(f"Duplicate label '{label}' on line {line_num}")
+                labels[label] = pc_addr
+                line_clean = line_clean[match.end():].strip()
+
+            if line_clean:
+                instructions.append((line_num, line, line_clean, pc_addr))
+                pc_addr += 4
         print("=" * 80)
         print(f"RV32I Assembler - Processing user file: {input_asm_path}")
         print("=" * 80)
         print(f"{'Line':<4} {'Original Instruction':<50} {'Machine Code (Hex)':<12} {'Status'}")
         print("-" * 80)
 
-        # Assemble line by line
-        for line_num, line in enumerate(lines, 1):
+        # Assemble line by line (second pass)
+        for line_num, line, line_clean, pc_addr in instructions:
             try:
-                code = self.assemble_instr(line)
+                code = self.assemble_instr(line_clean, labels=labels, curr_addr=pc_addr)
                 if code is not None:
                     machine_codes.append(code)
                     print(f"{line_num:<4} {line.strip():<50} 0x{code:08X} {'Success'}")
