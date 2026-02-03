@@ -2,16 +2,15 @@
 
 module pipeline (
     input  clk,
-    input  rst,
-
-    // Instruction memory interface
-    output [31:0] instr_addr,
-    input  [31:0] instr_data
+    input  rst
 );
 
     // IF/ID outputs
     wire [31:0] if_id_pc;
     wire [31:0] if_id_instr;
+    // Instruction memory wires (internal)
+    wire [31:0] instr_addr;
+    wire [31:0] instr_data;
 
     // ID/EX data outputs (already registered inside ID)
     wire [31:0] id_ex_pc;
@@ -111,6 +110,13 @@ module pipeline (
         .instr_data  (instr_data),
         .if_id_pc    (if_id_pc),
         .if_id_instr (if_id_instr)
+    );
+
+    // Instruction Memory (Block RAM)
+    blk_mem_gen_0 instruction_memory (
+        .clka  (clk),
+        .addra (instr_addr[14:2]),
+        .douta (instr_data)
     );
 
     // ID stage (includes IF/ID -> ID/EX data regs)
