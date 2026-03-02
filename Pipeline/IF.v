@@ -2,6 +2,7 @@ module IF (
     input clk,
     input rst,
     input flush,
+    input stall,
 
     // Control signals from pipeline
     input jump,
@@ -55,15 +56,18 @@ module IF (
             pc <= 32'h00000000;
             if_id_pc_reg <= 32'h00000000;
             if_id_instr_reg <= 32'h00000000;
+        end else if (flush) begin
+            pc <= next_pc;
+            if_id_pc_reg <= 32'h00000000;
+            if_id_instr_reg <= 32'h00000000;
+        end else if (stall) begin
+            pc <= pc;
+            if_id_pc_reg <= if_id_pc_reg;
+            if_id_instr_reg <= if_id_instr_reg;
         end else begin
             pc <= next_pc;
-            if (flush) begin
-                if_id_pc_reg <= 32'h00000000;
-                if_id_instr_reg <= 32'h00000000;
-            end else begin
-                if_id_pc_reg <= pc;
-                if_id_instr_reg <= instr_data;
-            end
+            if_id_pc_reg <= pc;
+            if_id_instr_reg <= instr_data;
         end
     end
 

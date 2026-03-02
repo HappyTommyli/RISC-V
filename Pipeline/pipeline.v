@@ -58,6 +58,18 @@ module pipeline (
     wire [2:0]  ex_funct3;
     reg         ex_take_branch;
     wire [31:0] ex_pc_plus4;
+    wire        hazard_stall;
+    wire [31:0] mem_forward_data;
+    wire [31:0] mem_rs2_data;
+    wire [1:0]  forwardA;
+    wire [1:0]  forwardB;
+    wire        mem_forward_from_wb;
+
+    // Forwarding wires (to EX)
+    wire [31:0] fwd_rs1_data;
+    wire [31:0] fwd_rs2_data;
+    wire [4:0]  ex_rs1_addr;
+    wire [4:0]  ex_rs2_addr;
 
     // EX/MEM pipeline registers
     reg  [31:0] ex_mem_alu_result_reg;
@@ -97,11 +109,12 @@ module pipeline (
         .clk         (clk),
         .rst         (rst),
         .flush       (ex_take),
+        .stall       (hazard_stall),
         .jump        (ex_jump),
         .jalr_enable (ex_jalr_enable),
         .branch      (ex_branch),
         .zero        (ex_zero),
-        .rs1_data    (id_ex_rs1_data),
+        .rs1_data    (fwd_rs1_data),
         .imm         (id_ex_imm),
         .funct3      (ex_funct3),
         .alu_result  (ex_alu_result),
@@ -118,6 +131,46 @@ module pipeline (
         .addra (instr_addr[14:2]),
         .douta (instr_data)
     );
+
+    // Datapath (hazard-related) quick view:
+    // IF/ID.rs* -> ID/EX.rs* -> EX
+    //                ^            |
+    //                |            v
+    //             ForwardA/B <--- EX/MEM / MEM/WB
+    //                               |
+    //                         MEM store-data forward (WB -> MEM.rs2)
+    // Load-use stall: if ID/EX is load and IF/ID uses its rd, stall IF/ID and bubble ID/EX.
+
+    // Forwarding logic (EX stage operands)
+    assign ex_rs1_addr = id_ex_instr[19:15];
+    assign ex_rs2_addr = id_ex_instr[24:20];
+
+    // Forward from MEM stage (use load data when mem_read)
+    assign mem_forward_data = ex_mem_read_reg ? mem_data : ex_mem_alu_result_reg;
+
+    // Forwarding unit
+    forwarding_unit u_forwarding (
+        .ex_mem_regwrite  (ex_mem_reg_write_reg),
+        .ex_mem_rd        (ex_mem_rd_reg),
+        .mem_wb_regwrite  (mem_wb_reg_write_reg),
+        .mem_wb_rd        (mem_wb_rd_reg),
+        .id_ex_rs1        (ex_rs1_addr),
+        .id_ex_rs2        (ex_rs2_addr),
+        .ex_mem_rs2       (ex_mem_instruction_reg[24:20]),
+        .forwardA         (forwardA),
+        .forwardB         (forwardB),
+        .mem_forward_from_wb(mem_forward_from_wb)
+    );
+
+    assign fwd_rs1_data =
+        (forwardA == 2'b10) ? mem_forward_data :
+        (forwardA == 2'b01) ? wb_data :
+        id_ex_rs1_data;
+
+    assign fwd_rs2_data =
+        (forwardB == 2'b10) ? mem_forward_data :
+        (forwardB == 2'b01) ? wb_data :
+        id_ex_rs2_data;
 
     // ID stage (includes IF/ID -> ID/EX data regs)
     ID u_ID (
@@ -160,6 +213,17 @@ module pipeline (
             ex_branch      <= 1'b0;
             ex_jump        <= 1'b0;
             ex_jalr_enable <= 1'b0;
+        end else if (hazard_stall) begin
+            ex_alu_op      <= 4'b0000;
+            ex_alu_src     <= 1'b0;
+            ex_alu_src1    <= 1'b0;
+            ex_reg_write   <= 1'b0;
+            ex_mem_read    <= 1'b0;
+            ex_mem_write   <= 1'b0;
+            ex_mem_reg     <= 1'b0;
+            ex_branch      <= 1'b0;
+            ex_jump        <= 1'b0;
+            ex_jalr_enable <= 1'b0;
         end else begin
             ex_alu_op      <= id_alu_op;
             ex_alu_src     <= id_alu_src;
@@ -179,8 +243,8 @@ module pipeline (
         .clk          (clk),
         .rst          (rst),
         .pc           (id_ex_pc),
-        .rs1_data     (id_ex_rs1_data),
-        .rs2_data     (id_ex_rs2_data),
+        .rs1_data     (fwd_rs1_data),
+        .rs2_data     (fwd_rs2_data),
         .imm          (id_ex_imm),
         .rd           (id_ex_rd),
         .instruction  (id_ex_instr),
@@ -220,6 +284,16 @@ module pipeline (
 
     assign ex_take = ex_jump | ex_jalr_enable | (ex_branch & ex_take_branch);
 
+    // Load-use hazard detection (stall IF/ID, bubble ID/EX control)
+    hazard_unit u_hazard (
+        .id_ex_memread  (ex_mem_read),
+        .id_ex_rd       (id_ex_rd),
+        .if_id_rs1      (if_id_instr[19:15]),
+        .if_id_rs2      (if_id_instr[24:20]),
+        .flush          (ex_take),
+        .stall          (hazard_stall)
+    );
+
     // EX/MEM pipeline registers
     always @(posedge clk or posedge rst) begin
         if (rst) begin
@@ -248,11 +322,14 @@ module pipeline (
     end
 
     // MEM stage
+    // Store-data forwarding in MEM stage (from WB)
+    assign mem_rs2_data = mem_forward_from_wb ? wb_data : ex_mem_rs2_data_reg;
+
     MEM u_MEM (
         .clk            (clk),
         .rst            (rst),
         .alu_result     (ex_mem_alu_result_reg),
-        .rs2_data       (ex_mem_rs2_data_reg),
+        .rs2_data       (mem_rs2_data),
         .rd             (ex_mem_rd_reg),
         .reg_write      (ex_mem_reg_write_reg),
         .mem_write      (ex_mem_write_reg),
