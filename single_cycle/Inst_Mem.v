@@ -1,21 +1,113 @@
-module inst_mem (input wire [31:0]pc_address, input wire clk, output reg [31:0]instruction);
+module inst_mem (
+    input  wire [31:0] pc_address,
+    output reg  [31:0] instruction
+);
   parameter num_of_inst = 1024;
+  parameter INIT_FILE  = "program.hex";
+
   reg [31:0] memory [0:num_of_inst-1];
   integer i;
 
-  initial
-  begin
-    for (i = 0; i < num_of_inst; i = i + 1)
-    begin
-      memory[i] = 32'h00000013;  //nop
+  initial begin
+    // default fill with NOP
+    for (i = 0; i < num_of_inst; i = i + 1) begin
+      memory[i] = 32'h00000013;
     end
+    // load program (binary text, one 32-bit per line)
+    
   end
 
+  initial begin
+    memory[0] = 32'h000012b7;
+    memory[1] = 32'h00028293;
+    memory[2] = 32'h00001337;
+    memory[3] = 32'h01030313;
+    memory[4] = 32'h000013b7;
+    memory[5] = 32'h02038393;
+    memory[6] = 32'h00100513;
+    memory[7] = 32'h00a2a023;
+    memory[8] = 32'h00200513;
+    memory[9] = 32'h00a2a223;
+    memory[10] = 32'h00300513;
+    memory[11] = 32'h00a2a423;
+    memory[12] = 32'h00400513;
+    memory[13] = 32'h00a2a623;
+    memory[14] = 32'h00500593;
+    memory[15] = 32'h00b32023;
+    memory[16] = 32'h00600593;
+    memory[17] = 32'h00b32223;
+    memory[18] = 32'h00700593;
+    memory[19] = 32'h00b32423;
+    memory[20] = 32'h00800593;
+    memory[21] = 32'h00b32623;
+    memory[22] = 32'h0002a503;
+    memory[23] = 32'h00032583;
+    memory[24] = 32'h00000693;
+    memory[25] = 32'h00058863;
+    memory[26] = 32'h00a686b3;
+    memory[27] = 32'hfff58593;
+    memory[28] = 32'hff5ff06f;
+    memory[29] = 32'h0042a503;
+    memory[30] = 32'h00832583;
+    memory[31] = 32'h00000713;
+    memory[32] = 32'h00058863;
+    memory[33] = 32'h00a70733;
+    memory[34] = 32'hfff58593;
+    memory[35] = 32'hff5ff06f;
+    memory[36] = 32'h00e686b3;
+    memory[37] = 32'h00d3a023;
+    memory[38] = 32'h0002a503;
+    memory[39] = 32'h00432583;
+    memory[40] = 32'h00000693;
+    memory[41] = 32'h00058863;
+    memory[42] = 32'h00a686b3;
+    memory[43] = 32'hfff58593;
+    memory[44] = 32'hff5ff06f;
+    memory[45] = 32'h0042a503;
+    memory[46] = 32'h00c32583;
+    memory[47] = 32'h00000713;
+    memory[48] = 32'h00058863;
+    memory[49] = 32'h00a70733;
+    memory[50] = 32'hfff58593;
+    memory[51] = 32'hff5ff06f;
+    memory[52] = 32'h00e686b3;
+    memory[53] = 32'h00d3a223;
+    memory[54] = 32'h0082a503;
+    memory[55] = 32'h00032583;
+    memory[56] = 32'h00000693;
+    memory[57] = 32'h00058863;
+    memory[58] = 32'h00a686b3;
+    memory[59] = 32'hfff58593;
+    memory[60] = 32'hff5ff06f;
+    memory[61] = 32'h00c2a503;
+    memory[62] = 32'h00832583;
+    memory[63] = 32'h00000713;
+    memory[64] = 32'h00058863;
+    memory[65] = 32'h00a70733;
+    memory[66] = 32'hfff58593;
+    memory[67] = 32'hff5ff06f;
+    memory[68] = 32'h00e686b3;
+    memory[69] = 32'h00d3a423;
+    memory[70] = 32'h0082a503;
+    memory[71] = 32'h00432583;
+    memory[72] = 32'h00000693;
+    memory[73] = 32'h00058863;
+    memory[74] = 32'h00a686b3;
+    memory[75] = 32'hfff58593;
+    memory[76] = 32'hff5ff06f;
+    memory[77] = 32'h00c2a503;
+    memory[78] = 32'h00c32583;
+    memory[79] = 32'h00000713;
+    memory[80] = 32'h00058863;
+    memory[81] = 32'h00a70733;
+    memory[82] = 32'hfff58593;
+    memory[83] = 32'hff5ff06f;
+    memory[84] = 32'h00e686b3;
+    memory[85] = 32'h00d3a623;
+    memory[86] = 32'h0000006f;
+end
 
-  always @(*)//這個需要posedge clk 嗎? 直接@(*)不行嗎?
-  begin
+  always @(*) begin
     instruction = memory[pc_address[31:2]];
   end
-
-  
 endmodule
