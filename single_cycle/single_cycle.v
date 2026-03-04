@@ -1,6 +1,8 @@
 `timescale 1ns / 1ps
 
-module SingleCycle_RISCV (
+module SingleCycle_RISCV #(
+    parameter IMEM_INIT = "program.hex"
+)(
     input wire clk,    // System clock
     input wire rst     // Global reset
 );
@@ -53,10 +55,16 @@ module SingleCycle_RISCV (
     );
 
     // --- 2. Instruction Memory ---
-    blk_mem_gen_0 instruction_memory (
-        .clka (clk),
-        .addra (pc_address[14:2]), // Mapping byte address to word address
-        .douta (instruction)
+    // blk_mem_gen_0 instruction_memory (
+    //     .clka (clk),
+    //     .addra (pc_address[14:2]), // Mapping byte address to word address
+    //     .douta (instruction)
+    // );
+    inst_mem #(
+        .INIT_FILE(IMEM_INIT)
+    ) instruction_memory (
+        .pc_address (pc_address),
+        .instruction (instruction)
     );
 
     // --- 3. Control Unit ---
