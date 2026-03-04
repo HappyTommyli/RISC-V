@@ -23,13 +23,42 @@ module EX(
     output        ex_mem_read,
     output        ex_mem_write,
     output        ex_mem_reg,
-    output [31:0] ex_mem_instruction
+    output [31:0] ex_mem_instruction,
+
+    output       ex_branch_taken,
+    output [31:0] ex_branch_target
 );
 
 wire is_lui = (instruction[6:0] == 7'b0110111);
 wire [31:0] rs1_or_zero = is_lui ? 32'b0 : rs1_data;
 wire [31:0] alu_a = (alu_src1) ? pc : rs1_or_zero;
 wire [31:0] alu_b = (alu_src) ? imm : rs2_data;
+
+// decode branch / jump
+wire is_branch = (instruction[6:0] == 7'b1100011);
+wire is_jal    = (instruction[6:0] == 7'b1101111);
+wire is_jalr   = (instruction[6:0] == 7'b1100111);
+wire [2:0] funct3 = instruction[14:12];
+wire branch_taken;
+assign branch_taken =
+    is_branch && (
+        (funct3 == 3'b000 && (rs1_data == rs2_data)) ||              // BEQ
+        (funct3 == 3'b001 && (rs1_data != rs2_data)) ||              // BNE
+        (funct3 == 3'b100 && ($signed(rs1_data) <  $signed(rs2_data))) || // BLT
+        (funct3 == 3'b101 && ($signed(rs1_data) >= $signed(rs2_data))) || // BGE
+        (funct3 == 3'b110 && (rs1_data <  rs2_data)) ||              // BLTU
+        (funct3 == 3'b111 && (rs1_data >= rs2_data))                 // BGEU
+    );
+
+// target
+wire [31:0] branch_target = pc + imm;
+wire [31:0] jal_target    = pc + imm;
+wire [31:0] jalr_target   = (rs1_data + imm) & ~32'b1;
+
+assign ex_branch_taken  = branch_taken | is_jal | is_jalr;
+assign ex_branch_target = is_jal  ? jal_target  :
+                          is_jalr ? jalr_target :
+                                    branch_target;
 
 wire zero;
 wire signed [31:0] alu_result;
