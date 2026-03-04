@@ -5,11 +5,13 @@ module tb_SingleCycle_RISCV;
     // Inputs
     reg clk;
     reg rst;
+    wire [31:0] instruction;
 
     // Instantiate the Unit Under Test (UUT)
     SingleCycle_RISCV dut (
         .clk(clk),
-        .rst(rst)
+        .rst(rst),
+        .instruction(instruction)
     );
 
     // Clock generation

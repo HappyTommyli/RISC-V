@@ -1,10 +1,9 @@
 `timescale 1ns / 1ps
 
-module SingleCycle_RISCV #(
-    parameter IMEM_INIT = "program.hex"
-)(
+module SingleCycle_RISCV(
     input wire clk,    // System clock
-    input wire rst     // Global reset
+    input wire rst,     // Global reset
+    output wire [31:0] instruction
 );
 
     // Wires
@@ -13,7 +12,7 @@ module SingleCycle_RISCV #(
     wire [31:0] rs1_data;
     wire [31:0] rs2_data;
     wire [31:0] imm;
-    wire [31:0] instruction;
+//    wire [31:0] instruction;
     wire [31:0] alu_result;
     wire [31:0] data_mem_data;
     wire [31:0] writeback_data; // Data to be written to RegFile
@@ -60,9 +59,7 @@ module SingleCycle_RISCV #(
     //     .addra (pc_address[14:2]), // Mapping byte address to word address
     //     .douta (instruction)
     // );
-    inst_mem #(
-        .INIT_FILE(IMEM_INIT)
-    ) instruction_memory (
+    inst_mem instruction_memory (
         .pc_address (pc_address),
         .instruction (instruction)
     );

@@ -2,8 +2,7 @@ module inst_mem (
     input  wire [31:0] pc_address,
     output reg  [31:0] instruction
 );
-  parameter num_of_inst = 1024;
-  parameter INIT_FILE  = "program.hex";
+  parameter num_of_inst = 200;
 
   reg [31:0] memory [0:num_of_inst-1];
   integer i;
