@@ -125,12 +125,18 @@ module pipeline (
         .if_id_instr (if_id_instr)
     );
 
-    // Instruction Memory (Block RAM)
-    blk_mem_gen_0 instruction_memory (
-        .clka  (clk),
-        .addra (instr_addr[14:2]),
-        .douta (instr_data)
+    // Instruction Memory (combinational ROM)
+    inst_mem instruction_memory (
+        .pc_address  (instr_addr),
+        .instruction (instr_data)
     );
+
+    // --- Original Block Memory version (kept for reference) ---
+    // blk_mem_gen_0 instruction_memory (
+    //     .clka  (clk),
+    //     .addra (instr_addr[14:2]),
+    //     .douta (instr_data)
+    // );
 
     // Datapath (hazard-related) quick view:
     // IF/ID.rs* -> ID/EX.rs* -> EX
