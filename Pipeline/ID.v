@@ -48,8 +48,8 @@ imm_generator imm_gen_inst (
 );
 
 assign id_branch_target  = if_id_pc + imm;
-// assign id_predicted_take = id_jump | (id_branch & imm[31]); 
-assign id_predicted_take = id_branch & imm[31]; // static prediction: backward branches are taken
+assign id_predicted_take = id_jump | (id_branch & imm[31]); 
+// static prediction: backward branches are taken
 // static prediction:
 // - JAL: always taken
 // - Branch: backward (negative offset) = taken
@@ -73,16 +73,6 @@ Reg_File reg_file_inst (
 );
 
 //CU
-    // wire reg_write;
-    // wire mem_to_reg;
-    // wire mem_write;
-    // wire mem_read;
-    // wire alu_src;
-    // wire alu_src1;
-    // wire [3:0] alu_op;
-    // wire branch;
-    // wire jalr_enable;
-    // wire jump;
 CU cu_inst (
     .instruction(if_id_instr),
     .reg_write  (id_reg_write),
@@ -101,23 +91,6 @@ CU cu_inst (
     .csr_imm(),
     .csr_funct3()
 );
-    // assign id_reg_write = reg_write;
-    // assign id_mem_read = mem_read;
-    // assign id_mem_write = mem_write;
-    // assign id_mem_reg = mem_to_reg;
-    // assign id_alu_src = alu_src;
-    // assign id_alu_src1 = alu_src1;
-    // assign id_alu_op = alu_op;
-    // assign id_branch = branch;
-    // assign id_jump = jump;
-    // assign id_jalr_enable = jalr_enable;
-
-    // reg [31:0] id_ex_pc_reg;
-    // reg [31:0] id_ex_rs1_reg;
-    // reg [31:0] id_ex_rs2_reg;
-    // reg [31:0] id_ex_imm_reg;
-    // reg [4:0] id_ex_rd_reg;
-    // reg [31:0] id_ex_instr_reg;
 
 always @(posedge clk or posedge rst) begin
     if (rst || flush) begin
@@ -136,12 +109,4 @@ always @(posedge clk or posedge rst) begin
         id_ex_instr <= if_id_instr;
     end
 end
-
-    // assign id_ex_pc      = id_ex_pc_reg;
-    // assign id_ex_rs1_data= id_ex_rs1_reg;
-    // assign id_ex_rs2_data= id_ex_rs2_reg;
-    // assign id_ex_imm     = id_ex_imm_reg;
-    // assign id_ex_rd      = id_ex_rd_reg;
-    // assign id_ex_instr   = id_ex_instr_reg;
-
 endmodule

@@ -71,9 +71,13 @@ input wire        actual_take,
             if_id_instr_reg <= if_id_instr_reg;
         end else begin
             pc <= predicted_take ? predicted_pc : (pc + 32'd4);
-            // pc <= next_pc;
-             if_id_pc_reg <= pc;
-             if_id_instr_reg <= instr_data;
+            if (predicted_take) begin
+                if_id_pc_reg <= pc;
+                if_id_instr_reg <= 32'h00000000;  // predict jump
+            end else begin
+                if_id_pc_reg <= pc;
+                if_id_instr_reg <= instr_data;
+            end
         end
     end
 

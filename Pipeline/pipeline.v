@@ -194,7 +194,7 @@ module pipeline (
     ID u_ID (
         .clk          (clk),
         .rst          (rst),
-        .flush        (miss),//
+        .flush        (miss),//static prediction
         .if_id_pc     (if_id_pc),
         .if_id_instr  (if_id_instr),
         .wb_regwrite  (wb_regwrite),
