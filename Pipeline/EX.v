@@ -61,7 +61,7 @@ assign ex_branch_target = is_jal  ? jal_target  :
                                     branch_target;
 
 wire zero;
-wire signed [31:0] alu_result;
+// wire signed [31:0] alu_result;
 wire overflow;
 
 ALU alu_unit(
@@ -69,11 +69,11 @@ ALU alu_unit(
     .rs2_data(alu_b),
     .alu_op(alu_op),
     .zero(zero),
-    .alu_result(alu_result),
+    .alu_result(ex_alu_result),
     .overflow(overflow)
 );
 
-assign ex_alu_result = alu_result;
+// assign ex_alu_result = alu_result;
 assign ex_rs2_data = rs2_data;
 assign ex_rd = rd;
 assign ex_reg_write = reg_write;

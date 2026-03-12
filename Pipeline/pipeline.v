@@ -5,7 +5,6 @@ module pipeline (
     input  rst,
     output wire [31:0] instr_data
 );
-
     // IF/ID outputs
     wire [31:0] if_id_pc;
     wire [31:0] if_id_instr;
@@ -44,7 +43,9 @@ module pipeline (
     reg        ex_branch;
     reg        ex_jump;
     reg        ex_jalr_enable;
-
+//
+    reg ex_predicted_take;
+//
     // EX outputs (combinational)
     wire [31:0] ex_alu_result;
     wire [31:0] ex_rs2_data;
@@ -105,11 +106,14 @@ module pipeline (
     wire [4:0]  wb_rd;
     wire        wb_regwrite;
 
+//
+    assign miss = (ex_take != ex_predicted_take);
+//
     // IF stage
     IF u_IF (
         .clk         (clk),
         .rst         (rst),
-        .flush       (ex_take),
+        .flush       (miss),//
         .stall       (hazard_stall),
         .jump        (ex_jump),
         .jalr_enable (ex_jalr_enable),
@@ -123,7 +127,11 @@ module pipeline (
         .instr_addr  (instr_addr),
         .instr_data  (instr_data),
         .if_id_pc    (if_id_pc),
-        .if_id_instr (if_id_instr)
+        .if_id_instr (if_id_instr),
+        //
+        .predicted_take(id_predict_take),
+        .predicted_pc(id_branch_target),
+        .actual_take(ex_take)
     );
 
     // Instruction Memory (combinational ROM)
@@ -183,7 +191,7 @@ module pipeline (
     ID u_ID (
         .clk          (clk),
         .rst          (rst),
-        .flush        (ex_take),
+        .flush        (ex_take),//
         .if_id_pc     (if_id_pc),
         .if_id_instr  (if_id_instr),
         .wb_regwrite  (wb_regwrite),
@@ -204,7 +212,10 @@ module pipeline (
         .id_ex_rs2_data(id_ex_rs2_data),
         .id_ex_imm    (id_ex_imm),
         .id_ex_rd     (id_ex_rd),
-        .id_ex_instr  (id_ex_instr)
+        .id_ex_instr  (id_ex_instr),
+        //
+        .id_predicted_take(id_predict_take),
+        .id_branch_target(id_branch_target)
     );
 
     // ID/EX control registers
@@ -220,6 +231,7 @@ module pipeline (
             ex_branch      <= 1'b0;
             ex_jump        <= 1'b0;
             ex_jalr_enable <= 1'b0;
+            ex_predicted_take <= 1'b0;
         end else if (hazard_stall) begin
             ex_alu_op      <= 4'b0000;
             ex_alu_src     <= 1'b0;
@@ -231,6 +243,7 @@ module pipeline (
             ex_branch      <= 1'b0;
             ex_jump        <= 1'b0;
             ex_jalr_enable <= 1'b0;
+            ex_predicted_take <= 1'b0;
         end else begin
             ex_alu_op      <= id_alu_op;
             ex_alu_src     <= id_alu_src;
@@ -242,6 +255,7 @@ module pipeline (
             ex_branch      <= id_branch;
             ex_jump        <= id_jump;
             ex_jalr_enable <= id_jalr_enable;
+            ex_predicted_take <= id_predict_take;
         end
     end
 
@@ -297,7 +311,7 @@ module pipeline (
         .id_ex_rd       (id_ex_rd),
         .if_id_rs1      (if_id_instr[19:15]),
         .if_id_rs2      (if_id_instr[24:20]),
-        .flush          (ex_take),
+        .flush          (miss),//
         .stall          (hazard_stall)
     );
 
