@@ -293,6 +293,8 @@ module pipeline (
     assign ex_funct3 = id_ex_instr[14:12];
     assign ex_pc_plus4 = id_ex_pc + 32'd4;
 
+    // --- Branch compare uses forwarded operands (fixes stale-branch hazard) ---
+    // Old version used ALU result/zero. Kept below for reference.
     always @(*) begin
         ex_take_branch = 1'b0;
         case (ex_funct3)
@@ -305,6 +307,20 @@ module pipeline (
             default: ex_take_branch = 1'b0;
         endcase
     end
+
+    // --- Original branch compare (ALU-based) ---
+    // always @(*) begin
+    //     ex_take_branch = 1'b0;
+    //     case (ex_funct3)
+    //         3'b000: ex_take_branch = ex_zero;             // BEQ
+    //         3'b001: ex_take_branch = ~ex_zero;            // BNE
+    //         3'b100: ex_take_branch = ex_alu_result[0];    // BLT
+    //         3'b101: ex_take_branch = ex_alu_result[0];    // BGE
+    //         3'b110: ex_take_branch = ex_alu_result[0];    // BLTU
+    //         3'b111: ex_take_branch = ~ex_alu_result[0];   // BGEU
+    //         default: ex_take_branch = 1'b0;
+    //     endcase
+    // end
 
     assign ex_take = ex_jump | ex_jalr_enable | (ex_branch & ex_take_branch);
 
