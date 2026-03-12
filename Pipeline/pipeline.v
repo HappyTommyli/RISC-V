@@ -2,7 +2,8 @@
 
 module pipeline (
     input  clk,
-    input  rst
+    input  rst,
+    output wire [31:0] instr_data
 );
 
     // IF/ID outputs
@@ -10,7 +11,7 @@ module pipeline (
     wire [31:0] if_id_instr;
     // Instruction memory wires (internal)
     wire [31:0] instr_addr;
-    wire [31:0] instr_data;
+    // wire [31:0] instr_data;
 
     // ID/EX data outputs (already registered inside ID)
     wire [31:0] id_ex_pc;
