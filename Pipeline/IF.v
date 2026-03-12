@@ -3,7 +3,12 @@ module IF (
     input rst,
     input flush,
     input stall,
-
+//
+input wire        predicted_take,
+input wire [31:0] predicted_pc,
+input wire        actual_take,    
+//
+ // ex_take from EX (actual branch outcome)
     // Control signals from pipeline
     input jump,
     input jalr_enable,
@@ -65,9 +70,10 @@ module IF (
             if_id_pc_reg <= if_id_pc_reg;
             if_id_instr_reg <= if_id_instr_reg;
         end else begin
-            pc <= next_pc;
-            if_id_pc_reg <= pc;
-            if_id_instr_reg <= instr_data;
+            pc <= predicted_take ? predicted_pc : (pc + 32'd4);
+            // pc <= next_pc;
+             if_id_pc_reg <= pc;
+             if_id_instr_reg <= instr_data;
         end
     end
 

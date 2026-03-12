@@ -30,7 +30,11 @@ output reg [31:0] id_ex_rs1_data,
 output reg [31:0] id_ex_rs2_data,
 output reg [31:0] id_ex_imm,
 output reg [4:0]  id_ex_rd,
-output reg [31:0] id_ex_instr
+output reg [31:0] id_ex_instr,
+//
+output wire        id_predicted_take,
+output wire [31:0] id_branch_target
+//
 );
 wire [4:0] rs1_addr = if_id_instr[19:15];
 wire [4:0] rs2_addr = if_id_instr[24:20];
@@ -42,6 +46,14 @@ imm_generator imm_gen_inst (
     .instruction(if_id_instr),
     .imm        (imm)
 );
+
+assign id_branch_target  = if_id_pc + imm;
+// assign id_predicted_take = id_jump | (id_branch & imm[31]); 
+assign id_predicted_take = id_branch & imm[31]; // static prediction: backward branches are taken
+// static prediction:
+// - JAL: always taken
+// - Branch: backward (negative offset) = taken
+// - JALR: never predicted here (we let EX resolve it)
 
 //RegFile
     wire [31:0] rs1_data;
