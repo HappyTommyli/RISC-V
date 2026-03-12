@@ -34,8 +34,8 @@ loop_i:
         lw    a1, 0(t0)       # a1 = A[i]
         lw    a2, 0(t1)       # a2 = B[i]
 
-        addi  a4, zero, 0     # prod = 0
-        addi  a5, a2, 0       # count = B[i]
+        addi  a4, zero, 0     # prod = 0        memory[24] = 32'h00060793;
+        addi  a5, a2, 0       # count = B[i]        memory[25] = 32'h00078863;
 
 mul_loop:
         beq   a5, zero, mul_done
