@@ -2,16 +2,19 @@
 
 module pipeline (
     input  clk,
-    input  rst,
-    output wire [31:0] instr_data
+    input  rst
 );
     // IF/ID outputs
     wire [31:0] if_id_pc;
     wire [31:0] if_id_instr;
     // Instruction memory wires (internal)
     wire [31:0] instr_addr;
-    // wire [31:0] instr_data;
-
+    wire [31:0] instr_data;
+//branch
+    wire id_predict_take;
+    wire [31:0] id_branch_target;
+    wire miss;
+//
     // ID/EX data outputs (already registered inside ID)
     wire [31:0] id_ex_pc;
     wire [31:0] id_ex_rs1_data;
@@ -191,7 +194,7 @@ module pipeline (
     ID u_ID (
         .clk          (clk),
         .rst          (rst),
-        .flush        (ex_take),//
+        .flush        (miss),//
         .if_id_pc     (if_id_pc),
         .if_id_instr  (if_id_instr),
         .wb_regwrite  (wb_regwrite),
@@ -220,7 +223,7 @@ module pipeline (
 
     // ID/EX control registers
     always @(posedge clk or posedge rst) begin
-        if (rst || ex_take) begin
+        if (rst || miss) begin
             ex_alu_op      <= 4'b0000;
             ex_alu_src     <= 1'b0;
             ex_alu_src1    <= 1'b0;
@@ -290,8 +293,6 @@ module pipeline (
     assign ex_funct3 = id_ex_instr[14:12];
     assign ex_pc_plus4 = id_ex_pc + 32'd4;
 
-    // --- Branch compare uses forwarded operands (fixes stale-branch hazard) ---
-    // Old version used ALU result/zero. Kept below for reference.
     always @(*) begin
         ex_take_branch = 1'b0;
         case (ex_funct3)
@@ -304,20 +305,6 @@ module pipeline (
             default: ex_take_branch = 1'b0;
         endcase
     end
-
-    // --- Original branch compare (ALU-based) ---
-    // always @(*) begin
-    //     ex_take_branch = 1'b0;
-    //     case (ex_funct3)
-    //         3'b000: ex_take_branch = ex_zero;             // BEQ
-    //         3'b001: ex_take_branch = ~ex_zero;            // BNE
-    //         3'b100: ex_take_branch = ex_alu_result[0];    // BLT
-    //         3'b101: ex_take_branch = ex_alu_result[0];    // BGE
-    //         3'b110: ex_take_branch = ex_alu_result[0];    // BLTU
-    //         3'b111: ex_take_branch = ~ex_alu_result[0];   // BGEU
-    //         default: ex_take_branch = 1'b0;
-    //     endcase
-    // end
 
     assign ex_take = ex_jump | ex_jalr_enable | (ex_branch & ex_take_branch);
 
