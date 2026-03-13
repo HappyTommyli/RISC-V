@@ -6,7 +6,8 @@ module top_pipeline_result (
     input  wire        rst,
     input  wire [5:0]  result_index,
     output wire [31:0] result_word,
-    output wire [31:0] instruction
+    output wire [31:0] instruction,
+    output wire [31:0] debug_pc
 );
     // Base address of C matrix in data memory. Adjust if your asm uses a different layout.
     localparam [31:0] C_BASE = 32'h00001200;
@@ -18,6 +19,7 @@ module top_pipeline_result (
         .rst       (rst),
         .debug_addr(debug_addr),
         .debug_data(result_word),
-        .instruction(instruction)
+        .instruction(instruction),
+        .debug_pc   (debug_pc)
     );
 endmodule
