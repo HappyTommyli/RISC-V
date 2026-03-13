@@ -7,6 +7,9 @@ module tb_top_pipeline_result;
     wire [31:0] result_word;
     wire [31:0] instruction;
     wire [31:0] debug_pc;
+    wire        debug_mem_write;
+    wire [31:0] debug_mem_addr;
+    wire [31:0] debug_mem_wdata;
 
     // Adjust if your program runs longer
     integer i;
@@ -26,7 +29,10 @@ module tb_top_pipeline_result;
         .result_index(result_index),
         .result_word(result_word),
         .instruction(instruction),
-        .debug_pc(debug_pc)
+        .debug_pc(debug_pc),
+        .debug_mem_write(debug_mem_write),
+        .debug_mem_addr (debug_mem_addr),
+        .debug_mem_wdata(debug_mem_wdata)
     );
 
     // 100 MHz clock
@@ -52,6 +58,11 @@ module tb_top_pipeline_result;
                     stable_count <= 0;
                 end
                 last_pc <= debug_pc;
+            end
+
+            // Debug: show stores into C range
+            if (debug_mem_write && (debug_mem_addr >= 32'h00001200) && (debug_mem_addr < 32'h00001300)) begin
+                $display("STORE C @%h <= %h (pc=%h)", debug_mem_addr, debug_mem_wdata, debug_pc);
             end
         end
     end
