@@ -4,7 +4,8 @@ module pipeline_dbg (
     input  clk,
     input  rst,
     input  [31:0] debug_addr,
-    output [31:0] debug_data
+    output [31:0] debug_data,
+    output [31:0] instruction
 );
     // IF/ID outputs
     wire [31:0] if_id_pc;
@@ -144,6 +145,9 @@ module pipeline_dbg (
         .pc_address  (instr_addr),
         .instruction (instr_data)
     );
+
+    // Expose instruction for testbench counting (ID stage)
+    assign instruction = if_id_instr;
 
     // --- Original Block Memory version (kept for reference) ---
     // blk_mem_gen_0 instruction_memory (
