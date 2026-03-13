@@ -1,0 +1,62 @@
+module inst_mem (
+    input  wire [31:0] pc_address,
+    output reg  [31:0] instruction
+);
+  parameter num_of_inst = 200;
+
+  reg [31:0] memory [0:num_of_inst-1];
+  integer i;
+
+  initial begin
+    // default fill with NOP
+    for (i = 0; i < num_of_inst; i = i + 1) begin
+      memory[i] = 32'h00000013;
+    end
+    // load program (binary text, one 32-bit per line)
+    
+  end
+
+  initial begin
+    memory[0] = 32'h000012b7;
+    memory[1] = 32'h01028313;
+    memory[2] = 32'h02028393;
+    memory[3] = 32'h00100513;
+    memory[4] = 32'h00a2a023;
+    memory[5] = 32'h00200513;
+    memory[6] = 32'h00a2a223;
+    memory[7] = 32'h00300513;
+    memory[8] = 32'h00a2a423;
+    memory[9] = 32'h00400513;
+    memory[10] = 32'h00a2a623;
+    memory[11] = 32'h00500513;
+    memory[12] = 32'h00a32023;
+    memory[13] = 32'h00600513;
+    memory[14] = 32'h00a32223;
+    memory[15] = 32'h00700513;
+    memory[16] = 32'h00a32423;
+    memory[17] = 32'h00800513;
+    memory[18] = 32'h00a32623;
+    memory[19] = 32'h00400e13;
+    memory[20] = 32'h00000693;
+    memory[21] = 32'h0002a583;
+    memory[22] = 32'h00032603;
+    memory[23] = 32'h00000713;
+    memory[24] = 32'h00060793;
+    memory[25] = 32'h00078863;
+    memory[26] = 32'h00b70733;
+    memory[27] = 32'hfff78793;
+    memory[28] = 32'hff5ff06f;
+    memory[29] = 32'h00e686b3;
+    memory[30] = 32'h00428293;
+    memory[31] = 32'h00430313;
+    memory[32] = 32'hfffe0e13;
+    memory[33] = 32'h000e0463;
+    memory[34] = 32'hfcdff06f;
+    memory[35] = 32'h00d3a023;
+    memory[36] = 32'hffdff06f;
+end
+
+  always @(*) begin
+    instruction = memory[pc_address[31:2]];
+  end
+endmodule
