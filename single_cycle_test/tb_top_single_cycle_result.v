@@ -9,6 +9,7 @@ module tb_top_single_cycle_result;
 
     // Adjust if your program runs longer
     integer i;
+    integer cycles_left;
     localparam integer MAX_CYCLES = 200000;
     integer cycle_count;
     integer instr_count;
@@ -55,14 +56,11 @@ module tb_top_single_cycle_result;
         rst = 0;
 
         // wait for program to finish (detect done loop) or timeout
-wait_done: begin
-        for (i = 0; i < MAX_CYCLES; i = i + 1) begin
+        cycles_left = MAX_CYCLES;
+        while (cycles_left > 0 && !done_seen) begin
             @(posedge clk);
-            if (done_seen) begin
-                disable wait_done;
-            end
+            cycles_left = cycles_left - 1;
         end
-end
         if (!done_seen) $display("WARNING: timeout waiting for DONE (jal x0,0)");
 
         $display("==== Cycle Count = %0d ====", cycle_count);
