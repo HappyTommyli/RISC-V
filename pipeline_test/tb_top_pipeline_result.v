@@ -22,6 +22,7 @@ module tb_top_pipeline_result;
     reg [31:0] last_pc;
     integer stable_count;
     localparam integer STABLE_DONE_CYCLES = 4;
+    reg saw_store_c;
 
     top_pipeline_result dut (
         .clk(clk),
@@ -45,6 +46,7 @@ module tb_top_pipeline_result;
             done_seen   <= 0;
             last_pc     <= 32'h0;
             stable_count<= 0;
+            saw_store_c <= 0;
         end else begin
             if (!done_seen) begin
                 cycle_count <= cycle_count + 1;
@@ -63,6 +65,9 @@ module tb_top_pipeline_result;
             // Debug: show stores into C range
             if (debug_mem_write && (debug_mem_addr >= 32'h00001200) && (debug_mem_addr < 32'h00001300)) begin
                 $display("STORE C @%h <= %h (pc=%h)", debug_mem_addr, debug_mem_wdata, debug_pc);
+                saw_store_c <= 1;
+            end else if (debug_mem_write) begin
+                $display("STORE @%h <= %h (pc=%h)", debug_mem_addr, debug_mem_wdata, debug_pc);
             end
         end
     end
@@ -76,6 +81,7 @@ module tb_top_pipeline_result;
         done_seen = 0;
         last_pc = 0;
         stable_count = 0;
+        saw_store_c = 0;
 
         // reset for a few cycles
         repeat (5) @(posedge clk);
@@ -88,6 +94,7 @@ module tb_top_pipeline_result;
             cycles_left = cycles_left - 1;
         end
         if (!done_seen) $display("WARNING: timeout waiting for DONE (jal x0,0)");
+        if (!saw_store_c) $display("WARNING: no stores observed in C range (0x1200..0x12FF)");
 
         $display("==== Cycle Count = %0d ====", cycle_count);
         $display("==== Instruction Count (non-NOP fetched) = %0d ====", instr_count);
