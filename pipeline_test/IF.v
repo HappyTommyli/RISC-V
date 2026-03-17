@@ -29,7 +29,8 @@ input wire        actual_take,
 
     // To ID
     output [31:0] if_id_pc,
-    output [31:0] if_id_instr
+    output [31:0] if_id_instr,
+    output        if_id_valid
 );
 
     reg [31:0] pc;
@@ -38,6 +39,7 @@ input wire        actual_take,
 // IF/ID pipeline registers
     reg [31:0] if_id_pc_reg;
     reg [31:0] if_id_instr_reg;
+    reg        if_id_valid_reg;
 
     wire [31:0] pc_for_update;
     assign pc_for_update = flush ? branch_pc : pc;
@@ -61,22 +63,27 @@ input wire        actual_take,
             pc <= 32'h00000000;
             if_id_pc_reg <= 32'h00000000;
             if_id_instr_reg <= 32'h00000000;
+            if_id_valid_reg <= 1'b0;
         end else if (flush) begin
             pc <= next_pc;
             if_id_pc_reg <= 32'h00000000;
             if_id_instr_reg <= 32'h00000000;
+            if_id_valid_reg <= 1'b0;
         end else if (stall) begin
             pc <= pc;
             if_id_pc_reg <= if_id_pc_reg;
             if_id_instr_reg <= if_id_instr_reg;
+            if_id_valid_reg <= if_id_valid_reg;
         end else begin
             pc <= predicted_take ? predicted_pc : (pc + 32'd4);
             if (predicted_take) begin
                 if_id_pc_reg <= pc;
                 if_id_instr_reg <= 32'h00000000;  // predict jump
+                if_id_valid_reg <= 1'b0;
             end else begin
                 if_id_pc_reg <= pc;
                 if_id_instr_reg <= instr_data;
+                if_id_valid_reg <= 1'b1;
             end
         end
     end
@@ -85,5 +92,6 @@ input wire        actual_take,
     assign instr_addr   = pc;
     assign if_id_pc     = if_id_pc_reg;
     assign if_id_instr  = if_id_instr_reg;
+    assign if_id_valid  = if_id_valid_reg;
 
 endmodule

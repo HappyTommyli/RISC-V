@@ -9,11 +9,14 @@ module pipeline_dbg (
     output [31:0] debug_pc,
     output        debug_mem_write,
     output [31:0] debug_mem_addr,
-    output [31:0] debug_mem_wdata
+    output [31:0] debug_mem_wdata,
+    output        wb_valid,
+    output [31:0] wb_instr
 );
     // IF/ID outputs
     wire [31:0] if_id_pc;
     wire [31:0] if_id_instr;
+    wire        if_id_valid;
     // Instruction memory wires (internal)
     wire [31:0] instr_addr;
     wire [31:0] instr_data;
@@ -110,6 +113,12 @@ module pipeline_dbg (
     reg         mem_wb_mem_reg_reg;
     reg  [31:0] mem_wb_pc_plus4_reg;
     reg         mem_wb_jump_reg;
+    reg  [31:0] mem_wb_instr_reg;
+
+    // Pipeline valid tracking (for instruction retirement)
+    reg id_ex_valid;
+    reg ex_mem_valid;
+    reg mem_wb_valid;
 
     // WB outputs
     wire [31:0] wb_data;
@@ -138,6 +147,7 @@ module pipeline_dbg (
         .instr_data  (instr_data),
         .if_id_pc    (if_id_pc),
         .if_id_instr (if_id_instr),
+        .if_id_valid (if_id_valid),
         //
         .predicted_take(id_predict_take),
         .predicted_pc(id_branch_target),
@@ -156,6 +166,8 @@ module pipeline_dbg (
     assign debug_mem_write = ex_mem_write_reg;
     assign debug_mem_addr  = ex_mem_alu_result_reg;
     assign debug_mem_wdata = mem_rs2_data;
+    assign wb_valid = mem_wb_valid;
+    assign wb_instr = mem_wb_instr_reg;
 
     // --- Original Block Memory version (kept for reference) ---
     // blk_mem_gen_0 instruction_memory (
@@ -276,6 +288,17 @@ module pipeline_dbg (
         end
     end
 
+    // ID/EX valid tracking (bubble on miss or load-use stall)
+    always @(posedge clk or posedge rst) begin
+        if (rst || miss) begin
+            id_ex_valid <= 1'b0;
+        end else if (hazard_stall) begin
+            id_ex_valid <= 1'b0;
+        end else begin
+            id_ex_valid <= if_id_valid;
+        end
+    end
+
     // EX stage
     EX u_EX (
         .clk          (clk),
@@ -345,6 +368,7 @@ module pipeline_dbg (
             ex_mem_instruction_reg<= 32'b0;
             ex_mem_pc_plus4_reg   <= 32'b0;
             ex_mem_jump_reg       <= 1'b0;
+            ex_mem_valid          <= 1'b0;
         end else begin
             ex_mem_alu_result_reg <= ex_alu_result;
             ex_mem_rs2_data_reg   <= ex_rs2_data;
@@ -356,6 +380,7 @@ module pipeline_dbg (
             ex_mem_instruction_reg<= ex_mem_instruction;
             ex_mem_pc_plus4_reg   <= ex_pc_plus4;
             ex_mem_jump_reg       <= ex_jump;
+            ex_mem_valid          <= id_ex_valid;
         end
     end
 
@@ -393,6 +418,8 @@ module pipeline_dbg (
             mem_wb_mem_reg_reg   <= 1'b0;
             mem_wb_pc_plus4_reg  <= 32'b0;
             mem_wb_jump_reg      <= 1'b0;
+            mem_wb_instr_reg     <= 32'b0;
+            mem_wb_valid         <= 1'b0;
         end else begin
             mem_wb_data_reg      <= mem_data;
             mem_wb_alu_result_reg<= mem_alu_result;
@@ -401,6 +428,8 @@ module pipeline_dbg (
             mem_wb_mem_reg_reg   <= mem_regout;
             mem_wb_pc_plus4_reg  <= ex_mem_pc_plus4_reg;
             mem_wb_jump_reg      <= ex_mem_jump_reg;
+            mem_wb_instr_reg     <= ex_mem_instruction_reg;
+            mem_wb_valid         <= ex_mem_valid;
         end
     end
 

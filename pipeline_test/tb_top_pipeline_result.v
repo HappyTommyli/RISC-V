@@ -10,6 +10,8 @@ module tb_top_pipeline_result;
     wire        debug_mem_write;
     wire [31:0] debug_mem_addr;
     wire [31:0] debug_mem_wdata;
+    wire        wb_valid;
+    wire [31:0] wb_instr;
 
     // Adjust if your program runs longer
     integer i;
@@ -19,10 +21,8 @@ module tb_top_pipeline_result;
     reg done_seen;
     localparam [31:0] DONE_INSTR = 32'h0000006F; // jal x0, 0 (self-loop)
     integer cycles_left;
-    reg [31:0] last_pc;
-    integer stable_count;
-    localparam integer STABLE_DONE_CYCLES = 4;
     reg saw_store_c;
+    reg [31:0] max_pc;
 
     top_pipeline_result dut (
         .clk(clk),
@@ -33,7 +33,9 @@ module tb_top_pipeline_result;
         .debug_pc(debug_pc),
         .debug_mem_write(debug_mem_write),
         .debug_mem_addr (debug_mem_addr),
-        .debug_mem_wdata(debug_mem_wdata)
+        .debug_mem_wdata(debug_mem_wdata),
+        .wb_valid(wb_valid),
+        .wb_instr(wb_instr)
     );
 
     // 100 MHz clock
@@ -44,23 +46,19 @@ module tb_top_pipeline_result;
             cycle_count <= 0;
             instr_count <= 0;
             done_seen   <= 0;
-            last_pc     <= 32'h0;
-            stable_count<= 0;
             saw_store_c <= 0;
+            max_pc      <= 32'h0;
         end else begin
             if (!done_seen) begin
                 cycle_count <= cycle_count + 1;
-                if (instruction !== 32'h00000013 && instruction !== 32'h00000000)
+                if (wb_valid)
                     instr_count <= instr_count + 1;
-                if (instruction == DONE_INSTR && debug_pc == last_pc) begin
-                    stable_count <= stable_count + 1;
-                    if (stable_count >= STABLE_DONE_CYCLES)
-                        done_seen <= 1;
-                end else begin
-                    stable_count <= 0;
-                end
-                last_pc <= debug_pc;
+                if (wb_valid && wb_instr == DONE_INSTR)
+                    done_seen <= 1;
             end
+
+            if (debug_pc > max_pc)
+                max_pc <= debug_pc;
 
             // Debug: show stores into C range
             if (debug_mem_write && (debug_mem_addr >= 32'h00001200) && (debug_mem_addr < 32'h00001300)) begin
@@ -79,9 +77,8 @@ module tb_top_pipeline_result;
         cycle_count = 0;
         instr_count = 0;
         done_seen = 0;
-        last_pc = 0;
-        stable_count = 0;
         saw_store_c = 0;
+        max_pc = 0;
 
         // reset for a few cycles
         repeat (5) @(posedge clk);
@@ -93,15 +90,22 @@ module tb_top_pipeline_result;
             @(posedge clk);
             cycles_left = cycles_left - 1;
         end
-        if (!done_seen) $display("WARNING: timeout waiting for DONE (jal x0,0)");
+        if (done_seen) begin
+            $display("DONE detected at cycle=%0d (wb_instr=%h)", cycle_count, wb_instr);
+            $display("MAX PC reached = %h", max_pc);
+        end else begin
+            $display("WARNING: timeout waiting for DONE (jal x0,0)");
+            $display("MAX PC reached = %h", max_pc);
+        end
         if (!saw_store_c) $display("WARNING: no stores observed in C range (0x1200..0x12FF)");
 
         $display("==== Cycle Count = %0d ====", cycle_count);
-        $display("==== Instruction Count (non-NOP fetched) = %0d ====", instr_count);
+        $display("==== Instruction Count (retired) = %0d ====", instr_count);
         $display("==== C matrix output (index -> value) ====");
         for (i = 0; i < 64; i = i + 1) begin
             result_index = i[5:0];
             @(posedge clk);
+            #1; // allow combinational read to settle after clock edge
             $display("C[%0d] = 0x%08x (%0d)", i, result_word, result_word);
         end
 
