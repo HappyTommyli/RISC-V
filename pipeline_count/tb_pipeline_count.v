@@ -11,6 +11,7 @@ module tb_pipeline_count;
     integer instr_count;
     integer cycles_left;
     integer i;
+    reg     done_seen;
 
     localparam integer MAX_CYCLES = 500000;
     localparam [31:0] DONE_INSTR = 32'h0000006F; // jal x0, 0
@@ -42,6 +43,7 @@ module tb_pipeline_count;
         rst = 0;
         cycle_count = 0;
         instr_count = 0;
+        done_seen = 0;
 
         // reset pulse
         repeat (2) @(posedge clk);
@@ -51,16 +53,16 @@ module tb_pipeline_count;
 
         // wait for DONE or timeout
         cycles_left = MAX_CYCLES;
-        while (cycles_left > 0) begin
+        while (cycles_left > 0 && !done_seen) begin
             @(posedge clk);
             if (wb_valid && wb_instr == DONE_INSTR) begin
                 $display("DONE at cycle=%0d", cycle_count);
-                break;
+                done_seen = 1;
             end
             cycles_left = cycles_left - 1;
         end
 
-        if (cycles_left == 0) begin
+        if (!done_seen) begin
             $display("WARNING: timeout waiting for DONE");
         end
 
