@@ -23,6 +23,8 @@ module tb_top_pipeline_result;
     integer cycles_left;
     reg saw_store_c;
     reg [31:0] max_pc;
+    reg reset_seen;
+    reg reset_done;
 
     top_pipeline_result dut (
         .clk(clk),
@@ -48,7 +50,11 @@ module tb_top_pipeline_result;
             done_seen   <= 0;
             saw_store_c <= 0;
             max_pc      <= 32'h0;
+            reset_seen  <= 1'b1;
+            reset_done  <= 1'b0;
         end else begin
+            if (reset_seen)
+                reset_done <= 1'b1;
             if (!done_seen) begin
                 cycle_count <= cycle_count + 1;
                 if (wb_valid)
@@ -57,14 +63,16 @@ module tb_top_pipeline_result;
                     done_seen <= 1;
             end
 
-            // Stop at first X to pinpoint root cause
-            if ((^debug_pc === 1'bX) || (^instruction === 1'bX)) begin
-                $display("X DETECTED: cycle=%0d pc=%h instr=%h", cycle_count, debug_pc, instruction);
-                $finish;
-            end
-            if (wb_valid && (^wb_instr === 1'bX)) begin
-                $display("X DETECTED: cycle=%0d wb_instr=%h", cycle_count, wb_instr);
-                $finish;
+            // Stop at first X to pinpoint root cause (after reset completes)
+            if (reset_done) begin
+                if ((^debug_pc === 1'bX) || (^instruction === 1'bX)) begin
+                    $display("X DETECTED: cycle=%0d pc=%h instr=%h", cycle_count, debug_pc, instruction);
+                    $finish;
+                end
+                if (wb_valid && (^wb_instr === 1'bX)) begin
+                    $display("X DETECTED: cycle=%0d wb_instr=%h", cycle_count, wb_instr);
+                    $finish;
+                end
             end
 
             if (debug_pc > max_pc)
@@ -89,6 +97,8 @@ module tb_top_pipeline_result;
         done_seen = 0;
         saw_store_c = 0;
         max_pc = 0;
+        reset_seen = 0;
+        reset_done = 0;
 
         // reset pulse (ensure posedge rst is seen)
         repeat (2) @(posedge clk);

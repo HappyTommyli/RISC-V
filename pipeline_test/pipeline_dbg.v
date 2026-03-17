@@ -432,6 +432,9 @@ module pipeline_dbg (
         end
     end
 
+    // Valid when IF/ID holds a real instruction (not a bubble)
+    assign if_id_valid = (if_id_instr != 32'h00000000);
+
     // WB stage
     WB u_WB (
         .mem_data    (mem_wb_data_reg),
@@ -447,5 +450,3 @@ module pipeline_dbg (
     );
 
 endmodule
-    // Valid when IF/ID holds a real instruction (not a bubble)
-    assign if_id_valid = (if_id_instr != 32'h00000000);
