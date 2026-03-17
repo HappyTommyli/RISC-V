@@ -57,6 +57,16 @@ module tb_top_pipeline_result;
                     done_seen <= 1;
             end
 
+            // Stop at first X to pinpoint root cause
+            if ((^debug_pc === 1'bX) || (^instruction === 1'bX)) begin
+                $display("X DETECTED: cycle=%0d pc=%h instr=%h", cycle_count, debug_pc, instruction);
+                $finish;
+            end
+            if (wb_valid && (^wb_instr === 1'bX)) begin
+                $display("X DETECTED: cycle=%0d wb_instr=%h", cycle_count, wb_instr);
+                $finish;
+            end
+
             if (debug_pc > max_pc)
                 max_pc <= debug_pc;
 
@@ -72,7 +82,7 @@ module tb_top_pipeline_result;
 
     initial begin
         clk = 0;
-        rst = 1;
+        rst = 0;
         result_index = 0;
         cycle_count = 0;
         instr_count = 0;
@@ -80,8 +90,10 @@ module tb_top_pipeline_result;
         saw_store_c = 0;
         max_pc = 0;
 
-        // reset for a few cycles
-        repeat (5) @(posedge clk);
+        // reset pulse (ensure posedge rst is seen)
+        repeat (2) @(posedge clk);
+        rst = 1;
+        repeat (2) @(posedge clk);
         rst = 0;
 
         // wait for program to finish (detect done loop) or timeout

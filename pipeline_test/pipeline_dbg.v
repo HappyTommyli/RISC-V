@@ -129,7 +129,7 @@ module pipeline_dbg (
     assign miss = (ex_take != ex_predicted_take);
 //
     // IF stage
-    IF u_IF (
+    IF_test u_IF (
         .clk         (clk),
         .rst         (rst),
         .flush       (miss),//
@@ -147,7 +147,6 @@ module pipeline_dbg (
         .instr_data  (instr_data),
         .if_id_pc    (if_id_pc),
         .if_id_instr (if_id_instr),
-        .if_id_valid (if_id_valid),
         //
         .predicted_take(id_predict_take),
         .predicted_pc(id_branch_target),
@@ -155,7 +154,7 @@ module pipeline_dbg (
     );
 
     // Instruction Memory (combinational ROM)
-    inst_mem instruction_memory (
+    inst_mem_test instruction_memory (
         .pc_address  (instr_addr),
         .instruction (instr_data)
     );
@@ -448,3 +447,5 @@ module pipeline_dbg (
     );
 
 endmodule
+    // Valid when IF/ID holds a real instruction (not a bubble)
+    assign if_id_valid = (if_id_instr != 32'h00000000);
