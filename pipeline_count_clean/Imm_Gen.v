@@ -1,4 +1,4 @@
-module imm_generator_count(
+module imm_generator(
     input [31:0] instruction,
     output reg [31:0] imm
 );

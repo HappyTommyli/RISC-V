@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-module tb_pipeline_count;
+module tb_pipeline_count_clean;
     reg clk;
     reg rst;
 
@@ -17,7 +17,7 @@ module tb_pipeline_count;
     localparam [31:0] DONE_INSTR = 32'h0000006F; // jal x0, 0
     localparam [31:0] C_BASE     = 32'h00001200;
 
-    pipeline_count dut (
+    pipeline_count_clean dut (
         .clk      (clk),
         .rst      (rst),
         .wb_instr (wb_instr),

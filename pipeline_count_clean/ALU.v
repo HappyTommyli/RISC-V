@@ -1,4 +1,4 @@
-module ALU_count(
+module ALU(
     input [31:0] rs1_data,
     input [31:0] rs2_data,
     input [3:0] alu_op,

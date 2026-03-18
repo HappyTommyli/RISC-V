@@ -1,13 +1,14 @@
 // (* keep_hierarchy = "yes" *)
-module inst_mem_count (
+module inst_mem (
     input  wire [31:0] pc_address,
     output reg  [31:0] instruction
 );
-  localparam NUM_OF_INST = 256;
+  localparam NUM_OF_INST = 200;
+  localparam ADDR_W = $clog2(NUM_OF_INST);
 
   // Force distributed ROM (combinational read)
   (* rom_style = "distributed" *) reg [31:0] memory [0:NUM_OF_INST-1];
-  wire [7:0] word_addr = pc_address[9:2];
+  wire [ADDR_W-1:0] word_addr = pc_address[2 + ADDR_W - 1 : 2];
 
   integer i;
   initial begin

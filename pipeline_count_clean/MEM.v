@@ -1,8 +1,8 @@
-module MEM_count(
+module MEM(
     input clk,
     input rst,
 
-    // From EX_count
+    // From EX
     input [31:0] alu_result,
     input [31:0] rs2_data,
     input [4:0] rd,
@@ -11,7 +11,7 @@ module MEM_count(
 
     input [31:0] ex_mem_instruction,
 
-    // To WB_count
+    // To WB
     output [31:0] mem_data,
     output [31:0] mem_alu_result,
     output [4:0]  mem_rd,
@@ -20,7 +20,7 @@ module MEM_count(
 );
 wire [31:0] data_mem_data;
 
-Data_Memory_count data_memory_inst (
+Data_Memory data_memory_inst (
     .clk(clk),
     .mem_read(mem_read),
     .mem_write(mem_write),

@@ -1,7 +1,7 @@
-module EX_count(
+module EX(
     input clk,
     input rst,
-    // From ID_count
+    // From ID
     input [31:0] pc,
     input [31:0] rs1_data,
     input [31:0] rs2_data,
@@ -15,7 +15,7 @@ module EX_count(
     input mem_read,
     input mem_write,
     input mem_reg,
-    // To MEM_count
+    // To MEM
     output [31:0] ex_alu_result,
     output [31:0] ex_rs2_data,
     output [4:0]  ex_rd,
@@ -64,7 +64,7 @@ wire zero;
 // wire signed [31:0] alu_result;
 wire overflow;
 
-ALU_count alu_unit(
+ALU alu_unit(
     .rs1_data(alu_a),
     .rs2_data(alu_b),
     .alu_op(alu_op),

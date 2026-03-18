@@ -1,12 +1,12 @@
 `timescale 1ns / 1ps
 
-module pipeline_count (
+module pipeline_count_clean (
     input  clk,
     input  rst,
     output [31:0] wb_instr,
     output        wb_valid
 );
-    // IF_count/ID_count outputs
+    // IF/ID outputs
     wire [31:0] if_id_pc;
     wire [31:0] if_id_instr;
     // Instruction memory wires (internal)
@@ -17,7 +17,7 @@ module pipeline_count (
     wire [31:0] id_branch_target;
     wire miss;
 //
-    // ID_count/EX_count data outputs (already registered inside ID_count)
+    // ID/EX data outputs (already registered inside ID)
     wire [31:0] id_ex_pc;
     wire [31:0] id_ex_rs1_data;
     wire [31:0] id_ex_rs2_data;
@@ -25,7 +25,7 @@ module pipeline_count (
     wire [4:0]  id_ex_rd;
     wire [31:0] id_ex_instr;
 
-    // ID_count control outputs (combinational)
+    // ID control outputs (combinational)
     wire [3:0] id_alu_op;
     wire       id_alu_src;
     wire       id_alu_src1;
@@ -37,7 +37,7 @@ module pipeline_count (
     wire       id_jump;
     wire       id_jalr_enable;
 
-    // ID_count/EX_count control registers
+    // ID/EX control registers
     reg  [3:0] ex_alu_op;
     reg        ex_alu_src;
     reg        ex_alu_src1;
@@ -51,7 +51,7 @@ module pipeline_count (
 //
     reg ex_predicted_take;
 //
-    // EX_count outputs (combinational)
+    // EX outputs (combinational)
     wire [31:0] ex_alu_result;
     wire [31:0] ex_rs2_data;
     wire [4:0]  ex_rd;
@@ -72,13 +72,13 @@ module pipeline_count (
     wire [1:0]  forwardB;
     wire        mem_forward_from_wb;
 
-    // Forwarding wires (to EX_count)
+    // Forwarding wires (to EX)
     wire [31:0] fwd_rs1_data;
     wire [31:0] fwd_rs2_data;
     wire [4:0]  ex_rs1_addr;
     wire [4:0]  ex_rs2_addr;
 
-    // EX_count/MEM_count pipeline_count registers
+    // EX/MEM pipeline registers
     reg  [31:0] ex_mem_alu_result_reg;
     reg  [31:0] ex_mem_rs2_data_reg;
     reg  [4:0]  ex_mem_rd_reg;
@@ -90,14 +90,14 @@ module pipeline_count (
     reg  [31:0] ex_mem_pc_plus4_reg;
     reg         ex_mem_jump_reg;
 
-    // MEM_count outputs (combinational)
+    // MEM outputs (combinational)
     wire [31:0] mem_data;
     wire [31:0] mem_alu_result;
     wire [4:0]  mem_rd;
     wire        mem_reg_write;
     wire        mem_regout;
 
-    // MEM_count/WB_count pipeline_count registers
+    // MEM/WB pipeline registers
     reg  [31:0] mem_wb_data_reg;
     reg  [31:0] mem_wb_alu_result_reg;
     reg  [4:0]  mem_wb_rd_reg;
@@ -107,7 +107,7 @@ module pipeline_count (
     reg         mem_wb_jump_reg;
     reg  [31:0] mem_wb_instr_reg;
 
-    // WB_count outputs
+    // WB outputs
     wire [31:0] wb_data;
     wire [4:0]  wb_rd;
     wire        wb_regwrite;
@@ -118,8 +118,8 @@ module pipeline_count (
 //
     assign miss = (ex_take != ex_predicted_take);
 //
-    // IF_count stage
-    IF_count u_IF (
+    // IF stage
+    IF u_IF (
         .clk         (clk),
         .rst         (rst),
         .flush       (miss),//
@@ -144,7 +144,7 @@ module pipeline_count (
     );
 
     // Instruction Memory (combinational ROM)
-    inst_mem_count instruction_memory (
+    inst_mem instruction_memory (
         .pc_address  (instr_addr),
         .instruction (instr_data)
     );
@@ -157,23 +157,23 @@ module pipeline_count (
     // );
 
     // Datapath (hazard-related) quick view:
-    // IF_count/ID_count.rs* -> ID_count/EX_count.rs* -> EX_count
+    // IF/ID.rs* -> ID/EX.rs* -> EX
     //                ^            |
     //                |            v
-    //             ForwardA/B <--- EX_count/MEM_count / MEM_count/WB_count
+    //             ForwardA/B <--- EX/MEM / MEM/WB
     //                               |
-    //                         MEM_count store-data forward (WB_count -> MEM_count.rs2)
-    // Load-use stall: if ID_count/EX_count is load and IF_count/ID_count uses its rd, stall IF_count/ID_count and bubble ID_count/EX_count.
+    //                         MEM store-data forward (WB -> MEM.rs2)
+    // Load-use stall: if ID/EX is load and IF/ID uses its rd, stall IF/ID and bubble ID/EX.
 
-    // Forwarding logic (EX_count stage operands)
+    // Forwarding logic (EX stage operands)
     assign ex_rs1_addr = id_ex_instr[19:15];
     assign ex_rs2_addr = id_ex_instr[24:20];
 
-    // Forward from MEM_count stage (use load data when mem_read)
+    // Forward from MEM stage (use load data when mem_read)
     assign mem_forward_data = ex_mem_read_reg ? mem_data : ex_mem_alu_result_reg;
 
     // Forwarding unit
-    forwarding_unit_count u_forwarding (
+    forwarding_unit u_forwarding (
         .ex_mem_regwrite  (ex_mem_reg_write_reg),
         .ex_mem_rd        (ex_mem_rd_reg),
         .mem_wb_regwrite  (mem_wb_reg_write_reg),
@@ -196,8 +196,8 @@ module pipeline_count (
         (forwardB == 2'b01) ? wb_data :
         id_ex_rs2_data;
 
-    // ID_count stage (includes IF_count/ID_count -> ID_count/EX_count data regs)
-    ID_count u_ID (
+    // ID stage (includes IF/ID -> ID/EX data regs)
+    ID u_ID (
         .clk          (clk),
         .rst          (rst),
         .flush        (miss),//static prediction
@@ -227,7 +227,7 @@ module pipeline_count (
         .id_branch_target(id_branch_target)
     );
 
-    // ID_count/EX_count control registers
+    // ID/EX control registers
     always @(posedge clk or posedge rst) begin
         if (rst || miss) begin
             ex_alu_op      <= 4'b0000;
@@ -268,8 +268,8 @@ module pipeline_count (
         end
     end
 
-    // EX_count stage
-    EX_count u_EX (
+    // EX stage
+    EX u_EX (
         .clk          (clk),
         .rst          (rst),
         .pc           (id_ex_pc),
@@ -314,8 +314,8 @@ module pipeline_count (
 
     assign ex_take = ex_jump | ex_jalr_enable | (ex_branch & ex_take_branch);
 
-    // Load-use hazard detection (stall IF_count/ID_count, bubble ID_count/EX_count control)
-    hazard_unit_count u_hazard (
+    // Load-use hazard detection (stall IF/ID, bubble ID/EX control)
+    hazard_unit u_hazard (
         .id_ex_memread  (ex_mem_read),
         .id_ex_rd       (id_ex_rd),
         .if_id_rs1      (if_id_instr[19:15]),
@@ -324,7 +324,7 @@ module pipeline_count (
         .stall          (hazard_stall)
     );
 
-    // EX_count/MEM_count pipeline_count registers
+    // EX/MEM pipeline registers
     always @(posedge clk or posedge rst) begin
         if (rst) begin
             ex_mem_alu_result_reg <= 32'b0;
@@ -351,11 +351,11 @@ module pipeline_count (
         end
     end
 
-    // MEM_count stage
-    // Store-data forwarding in MEM_count stage (from WB_count)
+    // MEM stage
+    // Store-data forwarding in MEM stage (from WB)
     assign mem_rs2_data = mem_forward_from_wb ? wb_data : ex_mem_rs2_data_reg;
 
-    MEM_count u_MEM (
+    MEM u_MEM (
         .clk            (clk),
         .rst            (rst),
         .alu_result     (ex_mem_alu_result_reg),
@@ -373,7 +373,7 @@ module pipeline_count (
         .mem_regout     (mem_regout)
     );
 
-    // MEM_count/WB_count pipeline_count registers
+    // MEM/WB pipeline registers
     always @(posedge clk or posedge rst) begin
         if (rst) begin
             mem_wb_data_reg      <= 32'b0;
@@ -396,8 +396,8 @@ module pipeline_count (
         end
     end
 
-    // WB_count stage
-    WB_count u_WB (
+    // WB stage
+    WB u_WB (
         .mem_data    (mem_wb_data_reg),
         .alu_result  (mem_wb_alu_result_reg),
         .pc_plus4    (mem_wb_pc_plus4_reg),

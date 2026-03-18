@@ -1,4 +1,4 @@
-module PC_update_count (
+module PC_update (
     input [31:0] rs1_data,
     input jump,
     input jalr_enable,
@@ -21,7 +21,7 @@ module PC_update_count (
                 3'b000: take_branch = zero;             // BEQ: zero == 1
                 3'b001: take_branch = ~zero;            // BNE: zero == 0
                 3'b100: take_branch = alu_result[0];    // BLT: result == 1
-                3'b101: take_branch = alu_result[0];    // BGE: ALU_count logic (User logic outputs 1 if GE)
+                3'b101: take_branch = alu_result[0];    // BGE: ALU logic (User logic outputs 1 if GE)
                 3'b110: take_branch = alu_result[0];    // BLTU
                 3'b111: take_branch = ~alu_result[0];   // BGEU: invert SLTU result
                 default: take_branch = 0;

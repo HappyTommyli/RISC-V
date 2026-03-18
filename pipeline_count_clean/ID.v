@@ -1,19 +1,19 @@
 `timescale 1ns / 1ps
-module ID_count(
+module ID(
 input clk,
 input rst,
 input flush,
 
-// From IF_count/ID_count
+// From IF/ID
 input [31:0] if_id_pc,
 input [31:0] if_id_instr,
 
-// From MEM_count/WB_count (for writeback to Reg_File_count)
+// From MEM/WB (for writeback to Reg_File)
 input wb_regwrite,
 input [4:0]  wb_rd,
 input [31:0] wb_data,
 
-// Control outputs to EX_count/MEM_count/WB_count (from CU_count)
+// Control outputs to EX/MEM/WB (from CU)
 output [3:0] id_alu_op,
 output id_alu_src,
 output id_alu_src1,
@@ -42,7 +42,7 @@ wire [4:0] rd_addr  = if_id_instr[11:7];
 
 //Imm
 wire [31:0] imm;
-imm_generator_count imm_gen_inst (
+imm_generator imm_gen_inst (
     .instruction(if_id_instr),
     .imm        (imm)
 );
@@ -53,12 +53,12 @@ assign id_predicted_take = id_jump | (id_branch & imm[31]);
 // static prediction:
 // - JAL: always taken
 // - Branch: backward (negative offset) = taken
-// - JALR: never predicted here (we let EX_count resolve it)
+// - JALR: never predicted here (we let EX resolve it)
 
 //RegFile
     wire [31:0] rs1_data;
     wire [31:0] rs2_data;
-Reg_File_count reg_file_inst (
+Reg_File reg_file_inst (
     .clk        (clk),
     .rst        (rst),
 
@@ -72,8 +72,8 @@ Reg_File_count reg_file_inst (
     .write_data (wb_data)
 );
 
-//CU_count
-CU_count cu_inst (
+//CU
+CU cu_inst (
     .instruction(if_id_instr),
     .reg_write  (id_reg_write),
     .mem_to_reg (id_mem_reg),

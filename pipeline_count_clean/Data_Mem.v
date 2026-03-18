@@ -1,5 +1,5 @@
 (* keep_hierarchy = "yes" *)
-module Data_Memory_count (
+module Data_Memory (
     input clk,
     input mem_read,
     input mem_write,
@@ -91,7 +91,7 @@ module Data_Memory_count (
 endmodule
 
 // --- Original version (kept for reference) ---
-// module Data_Memory_count (
+// module Data_Memory (
 //     input clk,
 //     input mem_read,
 //     input mem_write,

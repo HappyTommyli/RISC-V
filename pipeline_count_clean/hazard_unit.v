@@ -1,6 +1,6 @@
 // Hazard Detection Unit (load-use)
-// If ID_count/EX_count is a load, and IF_count/ID_count uses its destination, stall 1 cycle.
-module hazard_unit_count (
+// If ID/EX is a load, and IF/ID uses its destination, stall 1 cycle.
+module hazard_unit (
     input  wire       id_ex_memread,
     input  wire [4:0] id_ex_rd,
     input  wire [4:0] if_id_rs1,

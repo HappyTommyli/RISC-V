@@ -1,4 +1,4 @@
-module IF_count (
+module IF (
     input clk,
     input rst,
     input flush,
@@ -8,8 +8,8 @@ input wire        predicted_take,
 input wire [31:0] predicted_pc,
 input wire        actual_take,    
 //
- // ex_take from EX_count (actual branch outcome)
-    // Control signals from pipeline_count
+ // ex_take from EX (actual branch outcome)
+    // Control signals from pipeline
     input jump,
     input jalr_enable,
     input branch,
@@ -27,7 +27,7 @@ input wire        actual_take,
     // From instruction memory
     input  [31:0] instr_data,
 
-    // To ID_count
+    // To ID
     output [31:0] if_id_pc,
     output [31:0] if_id_instr
 );
@@ -35,15 +35,15 @@ input wire        actual_take,
     reg [31:0] pc;
     wire [31:0] next_pc;
 
-// IF_count/ID_count pipeline_count registers
+// IF/ID pipeline registers
     reg [31:0] if_id_pc_reg;
     reg [31:0] if_id_instr_reg;
 
     wire [31:0] pc_for_update;
     assign pc_for_update = flush ? branch_pc : pc;
 
-    // Use the PC_update_count module
-    PC_update_count pc_update_inst (
+    // Use the PC_update module
+    PC_update pc_update_inst (
         .rs1_data(rs1_data),
         .jump(jump),
         .jalr_enable(jalr_enable),

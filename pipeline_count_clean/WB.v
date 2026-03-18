@@ -1,6 +1,6 @@
-module WB_count (
+module WB (
     input  [31:0] mem_data,     // Data from memory (if load)
-    input  [31:0] alu_result,   // ALU_count output (if arithmetic)
+    input  [31:0] alu_result,   // ALU output (if arithmetic)
     input  [31:0] pc_plus4,     // PC + 4 for JAL/JALR
     input  [4:0]  rd,           // Destination
     input         reg_write,     // write?
@@ -12,7 +12,7 @@ module WB_count (
     output        wb_regwrite   // Write enable
 );
 
-    // select memory data / ALU_count result
+    // select memory data / ALU result
     assign wb_data = jump ? pc_plus4 : (mem_reg ? mem_data : alu_result);
 
     // Pass through destination register and write enable

@@ -1,4 +1,4 @@
-module CU_count ( 
+module CU ( 
     input wire [31:0] instruction, 
     output reg reg_write, 
     output reg mem_to_reg, 
@@ -76,7 +76,7 @@ module CU_count (
                     3'b100: alu_op = 4'b0010; // BLT (use SLT)
                     3'b101: alu_op = 4'b1011; // BGE (use logic >=)
                     3'b110: alu_op = 4'b0011; // BLTU (use SLTU)
-                    3'b111: alu_op = 4'b0011; // BGEU (use SLTU logic, inverted in PC_update_count)
+                    3'b111: alu_op = 4'b0011; // BGEU (use SLTU logic, inverted in PC_update)
                     default: alu_op = 4'b1111;
                 endcase
             end
@@ -87,10 +87,10 @@ module CU_count (
                 reg_write = 1; jump = 1; jalr_enable = 1; alu_src = 1; alu_op = 4'b0000; // ADD
             end
             7'b0110111: begin // LUI
-                reg_write = 1; alu_src = 1; alu_src1 = 0; alu_op = 4'b0000; // ADD (needs 0 as input, missing in ALU_count muxing for LUI)
+                reg_write = 1; alu_src = 1; alu_src1 = 0; alu_op = 4'b0000; // ADD (needs 0 as input, missing in ALU muxing for LUI)
             end
             7'b0010111: begin // AUIPC
-                reg_write = 1; alu_src = 1; alu_src1 = 1; alu_op = 4'b0000; // ADD (needs PC as input, missing in ALU_count muxing for AUIPC)
+                reg_write = 1; alu_src = 1; alu_src1 = 1; alu_op = 4'b0000; // ADD (needs PC as input, missing in ALU muxing for AUIPC)
             end
             // CSR and other instructions omitted for brevity, assuming original logic logic is fine
             default: alu_op = 4'b1111;
