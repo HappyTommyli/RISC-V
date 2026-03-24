@@ -76,7 +76,7 @@ Figma 連結：
    - ASM 端若顯示忙碌，可延遲寫入
 
 ## PetGame.asm 說明（中文）
-位置：`/Users/scas/Documents/fyp/RISC-V/petgame_soc_pipeline_opt/PetGame.asm`
+位置：`petgame_soc_pipeline_opt/PetGame.asm`
 
 ### 暫存器分配
 - `x10`：當前寵物索引 (0~4)
