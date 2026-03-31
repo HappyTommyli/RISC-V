@@ -53,7 +53,7 @@ Figma 連結：
 
 ## 待完成
 1. **Display_Engine 真正 SPI 實作**
-   - 初始化序列（依螢幕型號）
+   - 初始化序列 SSD1306
    - SPI 時序/分頻（SCLK 頻率）
    - 像素資料串流（RGB565 16-bit）
    - busy 訊號正確拉高/拉低
