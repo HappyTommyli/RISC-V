@@ -46,10 +46,10 @@ Figma 連結：
 3. 確保 `Picture_ROM.v` 被加入 Vivado sources
 
 ### ROM 預設規格
-- 5 隻寵物 × 5 表情
+- 5 隻寵物 × 5 表情 × 5帧动画
 - 32×32 (1024 pixels)
 - RGB565
-- ROM 深度 = 25600 entries
+- ROM 深度 = 128000 entries
 
 ## 待完成
 1. **Display_Engine 真正 SPI 實作**
