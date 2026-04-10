@@ -11,6 +11,9 @@ module Display_Engine (
 );
     // SPI 分频：若主时钟为 100MHz，SCLK_DIV=50 时 SCLK 约为 1MHz。
     localparam integer SCLK_DIV = 50;
+    // 32x32 宠物图像在 128x64 OLED 上的显示起点（可按需微调）
+    localparam [6:0] X_OFFSET = 7'd0; // 水平居中: (128-32)/2
+    localparam [2:0] PAGE_BASE = 3'd0; // 垂直中下: y=24 (page=3)
 
     // 主状态机：上电初始化 -> 空闲等待命令 -> 分页取像素并发送 -> 回空闲
     localparam [4:0] ST_BOOT             = 5'd0;
@@ -48,6 +51,7 @@ module Display_Engine (
     reg       tx_dc;
     reg [2:0] tx_bit;
     reg [7:0] div_cnt;
+    reg       clear_old_phase; // 1: 先清除旧位置(0,0)的32x32区域；0: 绘制新位置
 
     // 对非法 Pet/Exp 编号做钳位，避免越界访问图片 ROM。
     wire [2:0] cmd_pet = (cmd_data[15:8] < 8'd5) ? cmd_data[10:8] : 3'd0;
@@ -82,7 +86,7 @@ module Display_Engine (
                 5'd8:  init_cmd = 8'h8D; // 电荷泵配置
                 5'd9:  init_cmd = 8'h14;
                 5'd10: init_cmd = 8'h20; // 内存寻址模式
-                5'd11: init_cmd = 8'h00; // 水平寻址
+                5'd11: init_cmd = 8'h02; // 页寻址（与 B0/00/10 页写入流程匹配）
                 5'd12: init_cmd = 8'hA1; // 段重映射
                 5'd13: init_cmd = 8'hC8; // COM 扫描方向
                 5'd14: init_cmd = 8'hDA; // COM 引脚配置
@@ -94,7 +98,7 @@ module Display_Engine (
                 5'd20: init_cmd = 8'hDB; // VCOMH 电平
                 5'd21: init_cmd = 8'h40;
                 5'd22: init_cmd = 8'hA4; // RAM 内容决定显示
-                5'd23: init_cmd = 8'hA6; // 正常显示（非反色）
+                5'd23: init_cmd = 8'hA7; // 反色显示
                 5'd24: init_cmd = 8'hAF; // 开启显示
                 default: init_cmd = 8'hAE;
             endcase
@@ -126,6 +130,7 @@ module Display_Engine (
             tx_dc      <= 1'b0;
             tx_bit     <= 3'd0;
             div_cnt    <= 8'd0;
+            clear_old_phase <= 1'b0;
             busy       <= 1'b1; // 初始化期间保持忙碌
             sclk       <= 1'b0;
             mosi       <= 1'b0;
@@ -168,36 +173,47 @@ module Display_Engine (
                         col        <= 6'd0;
                         bit_row    <= 3'd0;
                         frame_byte <= 8'd0;
+                        clear_old_phase <= 1'b0;
                         busy       <= 1'b1;
                         state      <= ST_PAGE_CMD0;
                     end
                 end
 
                 ST_PAGE_CMD0: begin
-                    tx_byte    <= (8'hB0 + {6'd0, page}); // 设定页地址
+                    tx_byte    <= clear_old_phase
+                        ? (8'hB0 + {6'd0, page})                           // 清旧图: page 0..3
+                        : (8'hB0 + {5'd0, PAGE_BASE} + {6'd0, page});      // 画新图: PAGE_BASE..PAGE_BASE+3
                     tx_dc      <= 1'b0;
                     next_state <= ST_PAGE_CMD1;
                     state      <= ST_TX_SETUP;
                 end
 
                 ST_PAGE_CMD1: begin
-                    tx_byte    <= 8'h00; // 列地址低位起始
+                    tx_byte    <= clear_old_phase ? 8'h00 : {4'h0, X_OFFSET[3:0]}; // 列地址低位起始
                     tx_dc      <= 1'b0;
                     next_state <= ST_PAGE_CMD2;
                     state      <= ST_TX_SETUP;
                 end
 
                 ST_PAGE_CMD2: begin
-                    tx_byte    <= 8'h10; // 列地址高位起始
+                    tx_byte    <= clear_old_phase ? 8'h10 : {4'h1, X_OFFSET[6:4]}; // 列地址高位起始
                     tx_dc      <= 1'b0;
                     next_state <= ST_DATA_REQ;
                     state      <= ST_TX_SETUP;
                 end
 
                 ST_DATA_REQ: begin
-                    // 发起一次 ROM 读请求。
-                    rom_addr <= start_addr + {8'd0, pixel_idx};
-                    state    <= ST_DATA_WAIT;
+                    if (clear_old_phase) begin
+                        // 清除旧图阶段：每列直接发送 0x00（无需读 ROM）
+                        tx_byte    <= 8'h00;
+                        tx_dc      <= 1'b1;
+                        next_state <= ST_DATA_NEXT;
+                        state      <= ST_TX_SETUP;
+                    end else begin
+                        // 发起一次 ROM 读请求。
+                        rom_addr <= start_addr + {8'd0, pixel_idx};
+                        state    <= ST_DATA_WAIT;
+                    end
                 end
 
                 ST_DATA_WAIT: begin
@@ -230,8 +246,18 @@ module Display_Engine (
                         col     <= 6'd0;
                         bit_row <= 3'd0;
                         if (page == 2'd3) begin
-                            busy  <= 1'b0;
-                            state <= ST_IDLE;
+                            if (clear_old_phase) begin
+                                // 旧图清除完成，切换到新位置绘制阶段
+                                clear_old_phase <= 1'b0;
+                                page            <= 2'd0;
+                                col             <= 6'd0;
+                                bit_row         <= 3'd0;
+                                frame_byte      <= 8'd0;
+                                state           <= ST_PAGE_CMD0;
+                            end else begin
+                                busy  <= 1'b0;
+                                state <= ST_IDLE;
+                            end
                         end else begin
                             page  <= page + 1'b1;
                             state <= ST_PAGE_CMD0;

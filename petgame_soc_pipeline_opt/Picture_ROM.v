@@ -9,10 +9,10 @@ module Picture_ROM (
 
     (* rom_style = "block" *) reg [15:0] rom [0:ROM_DEPTH-1];
 
-    // Paste your generated init block here:
-    // initial begin
-    //     rom[0] = 16'h....;
-    // end
+    // Auto-generated image init.
+    // Re-generate tools/picture_rom_init.v with:
+    // tools/img_to_ssd1306_picture_rom.py
+`include "picture_rom_init.v"
 
     always @(posedge clk) begin
         dout <= rom[addr];
