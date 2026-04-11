@@ -73,6 +73,7 @@ Figma 連結：
 2. 產生的 `initial begin ... end` 貼到：
    - `Picture_ROM.v` 內的註解區塊
 3. 確保 `Picture_ROM.v` 被加入 Vivado sources
+4. `Picture_ROM.v` 內已直接內嵌初始化資料（不需要額外 .mem 檔）
 4. 目前已內建一張小貓圖（pet0_exp0），其他 pet 顯示為全黑
 
 ### ROM 預設規格
