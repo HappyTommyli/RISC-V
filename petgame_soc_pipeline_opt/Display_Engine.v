@@ -49,6 +49,8 @@ module Display_Engine (
     reg [2:0] tx_bit;
     reg [7:0] div_cnt;
 
+    reg       auto_draw_done;
+
     // Clamp PetID to 0..3, ExpID to 0..2
     wire [1:0] cmd_pet = (cmd_data[15:8] < 8'd4) ? cmd_data[9:8] : 2'd0;
     wire [1:0] cmd_exp = (cmd_data[7:0]  < 8'd3) ? cmd_data[1:0]  : 2'd0;
@@ -124,6 +126,7 @@ module Display_Engine (
             tx_dc      <= 1'b0;
             tx_bit     <= 3'd0;
             div_cnt    <= 8'd0;
+            auto_draw_done <= 1'b0;
             busy       <= 1'b1;
             sclk       <= 1'b0;
             mosi       <= 1'b0;
@@ -144,7 +147,15 @@ module Display_Engine (
                     if (init_idx == INIT_LAST) begin
                         busy     <= 1'b0;
                         init_idx <= 5'd0;
-                        state    <= ST_IDLE;
+                        // auto draw pet0_exp0 once after init
+                        start_addr <= 18'd0;
+                        page       <= 2'd0;
+                        col        <= 6'd0;
+                        bit_row    <= 3'd0;
+                        frame_byte <= 8'd0;
+                        busy       <= 1'b1;
+                        auto_draw_done <= 1'b1;
+                        state    <= ST_PAGE_CMD0;
                     end else begin
                         init_idx   <= init_idx + 1'b1;
                         tx_byte    <= init_cmd(init_idx + 1'b1);
@@ -165,6 +176,16 @@ module Display_Engine (
                         bit_row    <= 3'd0;
                         frame_byte <= 8'd0;
                         busy       <= 1'b1;
+                        state      <= ST_PAGE_CMD0;
+                    end else if (!auto_draw_done) begin
+                        // fallback: draw pet0 if init path was skipped
+                        start_addr <= 18'd0;
+                        page       <= 2'd0;
+                        col        <= 6'd0;
+                        bit_row    <= 3'd0;
+                        frame_byte <= 8'd0;
+                        busy       <= 1'b1;
+                        auto_draw_done <= 1'b1;
                         state      <= ST_PAGE_CMD0;
                     end
                 end
