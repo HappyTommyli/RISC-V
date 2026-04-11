@@ -41,6 +41,7 @@ module Display_Engine (
     reg [7:0] div_cnt;
 
     reg [1:0] pet_id;
+    reg       clear_phase;
 
     // Clamp PetID to 0..3
     wire [1:0] cmd_pet = (cmd_data[15:8] < 8'd4) ? cmd_data[9:8] : 2'd0;
@@ -107,6 +108,7 @@ module Display_Engine (
             page     <= 3'd0;
             col      <= 7'd0;
             pet_id   <= 2'd0;
+            clear_phase <= 1'b1;
             tx_byte  <= 8'd0;
             tx_dc    <= 1'b0;
             tx_bit   <= 3'd0;
@@ -131,7 +133,10 @@ module Display_Engine (
                     if (init_idx == INIT_LAST) begin
                         busy     <= 1'b0;
                         init_idx <= 5'd0;
-                        state    <= ST_IDLE;
+                        page     <= 3'd0;
+                        col      <= 7'd0;
+                        clear_phase <= 1'b1;
+                        state    <= ST_PAGE_CMD0;
                     end else begin
                         init_idx   <= init_idx + 1'b1;
                         tx_byte    <= init_cmd(init_idx + 1'b1);
@@ -149,6 +154,7 @@ module Display_Engine (
                         pet_id <= cmd_pet;
                         page   <= 3'd0;
                         col    <= 7'd0;
+                        clear_phase <= 1'b0;
                         busy   <= 1'b1;
                         state  <= ST_PAGE_CMD0;
                     end
@@ -176,7 +182,7 @@ module Display_Engine (
                 end
 
                 ST_DATA_SEND: begin
-                    tx_byte    <= quadrant_byte(pet_id, page, col);
+                    tx_byte    <= clear_phase ? 8'h00 : quadrant_byte(pet_id, page, col);
                     tx_dc      <= 1'b1;
                     next_state <= ST_DATA_NEXT;
                     state      <= ST_TX_SETUP;
@@ -186,6 +192,9 @@ module Display_Engine (
                     if (col == 7'd127) begin
                         col <= 7'd0;
                         if (page == 3'd7) begin
+                            if (clear_phase) begin
+                                clear_phase <= 1'b0;
+                            end
                             state <= ST_IDLE;
                         end else begin
                             page <= page + 1'b1;
