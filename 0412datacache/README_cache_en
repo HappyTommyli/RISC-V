@@ -1,0 +1,98 @@
+Data Cache Integration Summary
+
+This change adds a simplified direct-mapped data cache and basic hit/miss statistics on top of the original 5-stage pipeline, without changing overall CPI for now (no miss stalls yet).
+
+1. Data_Cache: Structure and Behavior
+
+Location: Data_Mem-10.v, module Data_Cache.
+
+Structure
+
+- Direct-mapped cache, 64 lines, 1 word (32-bit) per line.
+- Address split (word address = addr[31:2]):
+  - index = addr[2 + INDEX_BITS - 1 : 2], with INDEX_BITS = 6 → 64 lines.
+  - tag   = addr[31 : 2 + INDEX_BITS].
+- Per-line storage:
+  - valid_array[0:63]: valid bit.
+  - tag_array[0:63]: tag.
+  - data_array[0:63]: 32-bit data.
+
+Access Behavior
+
+Load (mem_read)
+
+- Hit detection: hit = valid_array[index] && (tag_array[index] == tag).
+- Hit:
+  - No access to Data_Memory (dmem_read = mem_read && ~hit).
+  - rdata is generated from data_array[index] using funct3 and addr[1:0] for byte/halfword selection and sign/zero extension (supports LB/LH/LBU/LHU/LW).
+- Miss:
+  - Issues one read to Data_Memory (dmem_read = mem_read && ~hit).
+  - rdata directly uses dmem_rdata, keeping the MEM stage latency at 1 cycle.
+  - Simultaneously updates data_array[index] and valid/tag with dmem_rdata (read-allocate).
+
+Store (mem_write)
+
+- Write-through policy: dmem_write = mem_write, dmem_addr = addr, dmem_wdata = wdata.
+- On a write hit, data_array[index] is updated according to funct3 (SB/SH/SW), mirroring the behavior of Data_Memory (byte/halfword/word updates).
+- On a write miss, the line is not allocated (no-write-allocate).
+
+Cache Stall
+
+- Currently, cache_stall is hard-wired to 0:
+      assign cache_stall = 1'b0;
+- No pipeline stall is generated on misses, so CPI is unaffected by hit/miss behavior at this stage.
+
+2. Integration with MEM Stage and Pipeline
+
+MEM Stage (MEM-5.v)
+
+- Data path:
+  - Data_Memory receives dmem_* signals from Data_Cache.
+  - Outputs from MEM to WB use the cache data:
+        assign mem_data       = cache_rdata;
+        assign mem_alu_result = alu_result;
+        assign mem_rd         = rd;
+        assign mem_reg_write  = reg_write;
+        assign mem_regout     = mem_reg;
+- Data_Cache takes EX/MEM alu_result, rs2_data, and ex_mem_instruction as its address and write-data inputs.
+
+Pipeline-Level Stall Support (Reserved for Future Use)
+
+- In pipeline-4.v, the following signals are introduced:
+      wire        cache_stall;
+      wire        pipeline_stall;
+      assign pipeline_stall = hazard_stall | cache_stall;
+- IF stage uses pipeline_stall to freeze PC and IF/ID registers; ID/EX, EX/MEM, and MEM/WB registers hold their values when cache_stall is high, enabling a future multi-cycle miss model.
+- At present, since cache_stall is always 0, this stall logic is not actively used.
+
+3. Hit/Miss Counters
+
+The following counters are added inside Data_Cache to record cache behavior (for analysis in simulation):
+
+- load_access_count: total number of load operations (mem_read == 1).
+- load_hit_count: number of load hits.
+- load_miss_count: number of load misses.
+- store_access_count: total number of store operations (mem_write == 1).
+
+Counting rules:
+
+    if (mem_read) begin
+        load_access_count <= load_access_count + 32'd1;
+        if (hit)
+            load_hit_count  <= load_hit_count  + 32'd1;
+        else
+            load_miss_count <= load_miss_count + 32'd1;
+    end
+    
+    if (mem_write) begin
+        store_access_count <= store_access_count + 32'd1;
+    end
+
+These counters are currently internal to Data_Cache and can be observed via simulation waveforms (e.g., u_dcache.load_hit_count). If needed, they can be exposed via memory-mapped registers or top-level outputs later.
+
+4. Overall Effect
+
+- Functional:
+  - The data cache implements a basic direct-mapped structure with read-allocate and write-through policies, updates cache lines on write hits, and fully supports byte/halfword/word loads/stores with correct sign/zero extension. Its behavior is compatible with the original Data_Memory-only design.
+- Performance:
+  - Since miss stalls are not yet implemented and cache_stall is always 0, CPI remains essentially identical to the version without a cache (single-cycle memory). The cache currently serves to provide realistic hit/miss behavior and statistics, which can be used to analyze memory access patterns and guide future performance optimizations.
