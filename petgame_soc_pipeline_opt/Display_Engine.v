@@ -2,144 +2,123 @@ module Display_Engine (
     input  wire        clk,
     input  wire        reset,
     input  wire [31:0] cmd_data,    // [15:8]=PetID, [7:0]=ExpID
-    input  wire        we,          // 来自 0x9000 写操作的使能脉冲
+    input  wire        we,          // 0x9000 write enable
     output reg         busy,
     output reg         sclk,
     output reg         mosi,
     output reg         dc,
     output reg         cs
 );
-    // SPI 分频：若主时钟为 100MHz，SCLK_DIV=50 时 SCLK 约为 1MHz。
-    localparam integer SCLK_DIV = 50;
-    // 32x32 宠物图像在 128x64 OLED 上的显示起点（可按需微调）
-    localparam [6:0] X_OFFSET = 7'd0; // 水平居中: (128-32)/2
-    localparam [2:0] PAGE_BASE = 3'd0; // 垂直中下: y=24 (page=3)
+    // SSD1306 128x64, 1-bit color.
+    // Pet 0: top-left, Pet 1: top-right, Pet 2: bottom-left, Pet 3: bottom-right.
 
-    // 主状态机：上电初始化 -> 空闲等待命令 -> 分页取像素并发送 -> 回空闲
-    localparam [4:0] ST_BOOT             = 5'd0;
-    localparam [4:0] ST_INIT_NEXT        = 5'd1;
-    localparam [4:0] ST_IDLE             = 5'd2;
-    localparam [4:0] ST_PAGE_CMD0        = 5'd3;
-    localparam [4:0] ST_PAGE_CMD1        = 5'd4;
-    localparam [4:0] ST_PAGE_CMD2        = 5'd5;
-    localparam [4:0] ST_DATA_REQ         = 5'd6;
-    localparam [4:0] ST_DATA_WAIT        = 5'd7;
-    localparam [4:0] ST_DATA_SAMPLE      = 5'd8;
-    localparam [4:0] ST_DATA_SEND        = 5'd9;
-    localparam [4:0] ST_DATA_NEXT        = 5'd10;
-    localparam [4:0] ST_TX_SETUP         = 5'd11;
-    localparam [4:0] ST_TX_HIGH          = 5'd12;
-    localparam [4:0] ST_TX_LOW           = 5'd13;
+    localparam integer SCLK_DIV = 50; // 100MHz -> ~1MHz SCLK
 
-    localparam [4:0] INIT_LAST = 5'd24; // 共 25 个初始化字节，索引 0..24
+    localparam [4:0] ST_BOOT      = 5'd0;
+    localparam [4:0] ST_INIT_NEXT = 5'd1;
+    localparam [4:0] ST_IDLE      = 5'd2;
+    localparam [4:0] ST_PAGE_CMD0 = 5'd3;
+    localparam [4:0] ST_PAGE_CMD1 = 5'd4;
+    localparam [4:0] ST_PAGE_CMD2 = 5'd5;
+    localparam [4:0] ST_DATA_SEND = 5'd6;
+    localparam [4:0] ST_DATA_NEXT = 5'd7;
+    localparam [4:0] ST_TX_SETUP  = 5'd8;
+    localparam [4:0] ST_TX_HIGH   = 5'd9;
+    localparam [4:0] ST_TX_LOW    = 5'd10;
+
+    localparam [4:0] INIT_LAST = 5'd24;
 
     reg [4:0] state;
     reg [4:0] next_state;
-
     reg [4:0] init_idx;
 
-    reg [1:0] page;        // 页号 0..3（32 行 = 4 页，每页 8 行）
-    reg [5:0] col;         // 列号 0..31
-    reg [2:0] bit_row;     // 页内 bit 行号 0..7
-    reg [7:0] frame_byte;  // 即将发给 OLED 的 1 字节页面数据
+    reg [2:0] page;   // 0..7
+    reg [6:0] col;    // 0..127
 
-    reg [17:0] start_addr; // 当前贴图在 ROM 的起始地址：(PetID*5 + ExpID) * 1024
-    reg [17:0] rom_addr;   // 送给 Picture_ROM 的读地址
-
-    // SPI 发 1 字节的工作寄存器
     reg [7:0] tx_byte;
     reg       tx_dc;
     reg [2:0] tx_bit;
     reg [7:0] div_cnt;
-    reg       clear_old_phase; // 1: 先清除旧位置(0,0)的32x32区域；0: 绘制新位置
 
-    // 对非法 Pet/Exp 编号做钳位，避免越界访问图片 ROM。
-    wire [2:0] cmd_pet = (cmd_data[15:8] < 8'd5) ? cmd_data[10:8] : 3'd0;
-    wire [2:0] cmd_exp = (cmd_data[7:0]  < 8'd5) ? cmd_data[2:0]  : 3'd0;
-    wire [17:0] cmd_start_addr =
-        (({15'd0, cmd_pet} * 18'd5) + {15'd0, cmd_exp}) << 10;
+    reg [1:0] pet_id;
 
-    // 将 (page,col,bit_row) 映射到 32x32 图块中的像素索引。
-    wire [5:0] y_in_tile = {page, 3'b000} + bit_row;
-    wire [9:0] pixel_idx = ({4'd0, y_in_tile} << 5) + {4'd0, col};
+    // Clamp PetID to 0..3
+    wire [1:0] cmd_pet = (cmd_data[15:8] < 8'd4) ? cmd_data[9:8] : 2'd0;
 
-    wire [15:0] current_pixel;
-    Picture_ROM rom_inst (
-        .clk(clk),
-        .addr(rom_addr),
-        .dout(current_pixel)
-    );
-
-    // SSD1306 初始化命令表。
     function [7:0] init_cmd;
         input [4:0] idx;
         begin
             case (idx)
-                5'd0:  init_cmd = 8'hAE; // 关闭显示
-                5'd1:  init_cmd = 8'hD5; // 设置显示时钟分频
+                5'd0:  init_cmd = 8'hAE; // display off
+                5'd1:  init_cmd = 8'hD5;
                 5'd2:  init_cmd = 8'h80;
-                5'd3:  init_cmd = 8'hA8; // 设置复用率
+                5'd3:  init_cmd = 8'hA8;
                 5'd4:  init_cmd = 8'h3F;
-                5'd5:  init_cmd = 8'hD3; // 设置显示偏移
+                5'd5:  init_cmd = 8'hD3;
                 5'd6:  init_cmd = 8'h00;
-                5'd7:  init_cmd = 8'h40; // 起始行
-                5'd8:  init_cmd = 8'h8D; // 电荷泵配置
+                5'd7:  init_cmd = 8'h40;
+                5'd8:  init_cmd = 8'h8D;
                 5'd9:  init_cmd = 8'h14;
-                5'd10: init_cmd = 8'h20; // 内存寻址模式
-                5'd11: init_cmd = 8'h02; // 页寻址（与 B0/00/10 页写入流程匹配）
-                5'd12: init_cmd = 8'hA1; // 段重映射
-                5'd13: init_cmd = 8'hC8; // COM 扫描方向
-                5'd14: init_cmd = 8'hDA; // COM 引脚配置
+                5'd10: init_cmd = 8'h20;
+                5'd11: init_cmd = 8'h02; // page addressing
+                5'd12: init_cmd = 8'hA1;
+                5'd13: init_cmd = 8'hC8;
+                5'd14: init_cmd = 8'hDA;
                 5'd15: init_cmd = 8'h12;
-                5'd16: init_cmd = 8'h81; // 对比度
+                5'd16: init_cmd = 8'h81;
                 5'd17: init_cmd = 8'hCF;
-                5'd18: init_cmd = 8'hD9; // 预充电周期
+                5'd18: init_cmd = 8'hD9;
                 5'd19: init_cmd = 8'hF1;
-                5'd20: init_cmd = 8'hDB; // VCOMH 电平
+                5'd20: init_cmd = 8'hDB;
                 5'd21: init_cmd = 8'h40;
-                5'd22: init_cmd = 8'hA4; // RAM 内容决定显示
-                5'd23: init_cmd = 8'hA7; // 反色显示
-                5'd24: init_cmd = 8'hAF; // 开启显示
+                5'd22: init_cmd = 8'hA4;
+                5'd23: init_cmd = 8'hA6; // normal display
+                5'd24: init_cmd = 8'hAF; // display on
                 default: init_cmd = 8'hAE;
             endcase
         end
     endfunction
 
-    // RGB565 转单色：使用简化亮度阈值（适配 SSD1306 1bit 像素）。
-    function pixel_to_mono;
-        input [15:0] rgb565;
-        reg [6:0] lum_approx;
+    // Return a data byte for (page, col) based on pet quadrant.
+    function [7:0] quadrant_byte;
+        input [1:0] pet;
+        input [2:0] pg;
+        input [6:0] cl;
+        reg top;
+        reg left;
         begin
-            lum_approx = {2'b00, rgb565[15:11]} + {1'b0, rgb565[10:5]} + {2'b00, rgb565[4:0]};
-            pixel_to_mono = (lum_approx >= 7'd24);
+            top  = (pg <= 3'd3);   // rows 0..31
+            left = (cl <= 7'd63);  // cols 0..63
+            case (pet)
+                2'd0: quadrant_byte = (top && left)  ? 8'hFF : 8'h00;
+                2'd1: quadrant_byte = (top && !left) ? 8'hFF : 8'h00;
+                2'd2: quadrant_byte = (!top && left) ? 8'hFF : 8'h00;
+                2'd3: quadrant_byte = (!top && !left)? 8'hFF : 8'h00;
+                default: quadrant_byte = 8'h00;
+            endcase
         end
     endfunction
 
     always @(posedge clk) begin
         if (reset) begin
-            state      <= ST_BOOT;
+            state    <= ST_BOOT;
             next_state <= ST_BOOT;
-            init_idx   <= 5'd0;
-            page       <= 2'd0;
-            col        <= 6'd0;
-            bit_row    <= 3'd0;
-            frame_byte <= 8'd0;
-            start_addr <= 0;
-            rom_addr   <= 0;
-            tx_byte    <= 8'd0;
-            tx_dc      <= 1'b0;
-            tx_bit     <= 3'd0;
-            div_cnt    <= 8'd0;
-            clear_old_phase <= 1'b0;
-            busy       <= 1'b1; // 初始化期间保持忙碌
-            sclk       <= 1'b0;
-            mosi       <= 1'b0;
-            dc         <= 1'b0;
-            cs         <= 1'b1;
+            init_idx <= 5'd0;
+            page     <= 3'd0;
+            col      <= 7'd0;
+            pet_id   <= 2'd0;
+            tx_byte  <= 8'd0;
+            tx_dc    <= 1'b0;
+            tx_bit   <= 3'd0;
+            div_cnt  <= 8'd0;
+            busy     <= 1'b1;
+            sclk     <= 1'b0;
+            mosi     <= 1'b0;
+            dc       <= 1'b0;
+            cs       <= 1'b1;
         end else begin
             case (state)
                 ST_BOOT: begin
-                    // 复位后先发送第一条初始化命令，后续在 ST_INIT_NEXT 继续发送。
                     busy       <= 1'b1;
                     tx_byte    <= init_cmd(5'd0);
                     tx_dc      <= 1'b0;
@@ -150,9 +129,9 @@ module Display_Engine (
                 ST_INIT_NEXT: begin
                     busy <= 1'b1;
                     if (init_idx == INIT_LAST) begin
-                        busy    <= 1'b0;
+                        busy     <= 1'b0;
                         init_idx <= 5'd0;
-                        state   <= ST_IDLE;
+                        state    <= ST_IDLE;
                     end else begin
                         init_idx   <= init_idx + 1'b1;
                         tx_byte    <= init_cmd(init_idx + 1'b1);
@@ -163,156 +142,98 @@ module Display_Engine (
                 end
 
                 ST_IDLE: begin
-                    // 空闲：等待 CPU 写入 display 命令。
                     busy <= 1'b0;
                     cs   <= 1'b1;
                     sclk <= 1'b0;
                     if (we) begin
-                        start_addr <= cmd_start_addr;
-                        page       <= 2'd0;
-                        col        <= 6'd0;
-                        bit_row    <= 3'd0;
-                        frame_byte <= 8'd0;
-                        clear_old_phase <= 1'b0;
-                        busy       <= 1'b1;
-                        state      <= ST_PAGE_CMD0;
+                        pet_id <= cmd_pet;
+                        page   <= 3'd0;
+                        col    <= 7'd0;
+                        busy   <= 1'b1;
+                        state  <= ST_PAGE_CMD0;
                     end
                 end
 
                 ST_PAGE_CMD0: begin
-                    tx_byte    <= clear_old_phase
-                        ? (8'hB0 + {6'd0, page})                           // 清旧图: page 0..3
-                        : (8'hB0 + {5'd0, PAGE_BASE} + {6'd0, page});      // 画新图: PAGE_BASE..PAGE_BASE+3
+                    tx_byte    <= 8'hB0 + {5'd0, page};
                     tx_dc      <= 1'b0;
                     next_state <= ST_PAGE_CMD1;
                     state      <= ST_TX_SETUP;
                 end
 
                 ST_PAGE_CMD1: begin
-                    tx_byte    <= clear_old_phase ? 8'h00 : {4'h0, X_OFFSET[3:0]}; // 列地址低位起始
+                    tx_byte    <= 8'h00; // column low
                     tx_dc      <= 1'b0;
                     next_state <= ST_PAGE_CMD2;
                     state      <= ST_TX_SETUP;
                 end
 
                 ST_PAGE_CMD2: begin
-                    tx_byte    <= clear_old_phase ? 8'h10 : {4'h1, X_OFFSET[6:4]}; // 列地址高位起始
+                    tx_byte    <= 8'h10; // column high
                     tx_dc      <= 1'b0;
-                    next_state <= ST_DATA_REQ;
+                    next_state <= ST_DATA_SEND;
                     state      <= ST_TX_SETUP;
                 end
 
-                ST_DATA_REQ: begin
-                    if (clear_old_phase) begin
-                        // 清除旧图阶段：每列直接发送 0x00（无需读 ROM）
-                        tx_byte    <= 8'h00;
-                        tx_dc      <= 1'b1;
-                        next_state <= ST_DATA_NEXT;
-                        state      <= ST_TX_SETUP;
-                    end else begin
-                        // 发起一次 ROM 读请求。
-                        rom_addr <= start_addr + {8'd0, pixel_idx};
-                        state    <= ST_DATA_WAIT;
-                    end
-                end
-
-                ST_DATA_WAIT: begin
-                    // Picture_ROM 为同步读，这里等待 1 个周期。
-                    state <= ST_DATA_SAMPLE;
-                end
-
-                ST_DATA_SAMPLE: begin
-                    // 把一个像素转换后写入 frame_byte 对应 bit。
-                    frame_byte[bit_row] <= pixel_to_mono(current_pixel);
-                    if (bit_row == 3'd7) begin
-                        state <= ST_DATA_SEND;
-                    end else begin
-                        bit_row <= bit_row + 1'b1;
-                        state   <= ST_DATA_REQ;
-                    end
-                end
-
                 ST_DATA_SEND: begin
-                    // 每累计 8 个像素（竖向）发送 1 字节数据。
-                    tx_byte    <= frame_byte;
+                    tx_byte    <= quadrant_byte(pet_id, page, col);
                     tx_dc      <= 1'b1;
                     next_state <= ST_DATA_NEXT;
                     state      <= ST_TX_SETUP;
                 end
 
                 ST_DATA_NEXT: begin
-                    // 更新列/页计数，决定继续发送还是结束一帧。
-                    if (col == 6'd31) begin
-                        col     <= 6'd0;
-                        bit_row <= 3'd0;
-                        if (page == 2'd3) begin
-                            if (clear_old_phase) begin
-                                // 旧图清除完成，切换到新位置绘制阶段
-                                clear_old_phase <= 1'b0;
-                                page            <= 2'd0;
-                                col             <= 6'd0;
-                                bit_row         <= 3'd0;
-                                frame_byte      <= 8'd0;
-                                state           <= ST_PAGE_CMD0;
-                            end else begin
-                                busy  <= 1'b0;
-                                state <= ST_IDLE;
-                            end
+                    if (col == 7'd127) begin
+                        col <= 7'd0;
+                        if (page == 3'd7) begin
+                            state <= ST_IDLE;
                         end else begin
-                            page  <= page + 1'b1;
+                            page <= page + 1'b1;
                             state <= ST_PAGE_CMD0;
                         end
                     end else begin
-                        col        <= col + 1'b1;
-                        bit_row    <= 3'd0;
-                        frame_byte <= 8'd0;
-                        state      <= ST_DATA_REQ;
+                        col <= col + 1'b1;
+                        state <= ST_DATA_SEND;
                     end
                 end
 
                 ST_TX_SETUP: begin
-                    // SPI 发字节准备：拉低 CS，装载首位，SCLK 置低。
-                    cs      <= 1'b0;
-                    dc      <= tx_dc;
-                    sclk    <= 1'b0;
-                    tx_bit  <= 3'd7;
-                    mosi    <= tx_byte[7];
+                    cs    <= 1'b0;
+                    dc    <= tx_dc;
+                    mosi  <= tx_byte[7];
+                    tx_bit <= 3'd7;
                     div_cnt <= 8'd0;
-                    state   <= ST_TX_HIGH;
+                    state <= ST_TX_HIGH;
                 end
 
                 ST_TX_HIGH: begin
-                    // 分频计数到点后把 SCLK 拉高。
-                    if (div_cnt == (SCLK_DIV - 1)) begin
+                    if (div_cnt == SCLK_DIV - 1) begin
+                        sclk <= 1'b1;
                         div_cnt <= 8'd0;
-                        sclk    <= 1'b1;
-                        state   <= ST_TX_LOW;
+                        state <= ST_TX_LOW;
                     end else begin
                         div_cnt <= div_cnt + 1'b1;
                     end
                 end
 
                 ST_TX_LOW: begin
-                    // 分频计数到点后把 SCLK 拉低，并切换到下一位/下一状态。
-                    if (div_cnt == (SCLK_DIV - 1)) begin
+                    if (div_cnt == SCLK_DIV - 1) begin
+                        sclk <= 1'b0;
                         div_cnt <= 8'd0;
-                        sclk    <= 1'b0;
                         if (tx_bit == 3'd0) begin
-                            cs    <= 1'b1;
+                            cs <= 1'b1;
                             state <= next_state;
                         end else begin
                             tx_bit <= tx_bit - 1'b1;
-                            mosi   <= tx_byte[tx_bit - 1'b1];
-                            state  <= ST_TX_HIGH;
+                            mosi <= tx_byte[tx_bit - 1'b1];
+                            state <= ST_TX_HIGH;
                         end
                     end else begin
                         div_cnt <= div_cnt + 1'b1;
                     end
                 end
 
-                default: begin
-                    state <= ST_IDLE;
-                end
+                default: state <= ST_IDLE;
             endcase
         end
     end

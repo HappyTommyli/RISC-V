@@ -6,7 +6,7 @@
 - `PetGame_SoC.v`：Top level
 - `pipeline.v`：已加入 buttons/timer/display 介面
 - `Data_Mem.v`：新增 memory-mapped IO (0x8000 / 0x8004 / 0x9000)
-- `Display_Engine.v`：SPI 顯示 stub
+- `Display_Engine.v`：SSD1306 SPI 顯示（四象限点亮模式）
 - `Basys3_PetGame.xdc`：Basys3 約束檔
 
 ## 位址映射
@@ -26,9 +26,11 @@
 3. **Display_Engine 接收到 `0x9000` 的寫入**
    - `display_we=1`，`display_cmd` 送出
    - `display_cmd` 格式：`[PetID<<8 | ExpID]`
-4. **Display_Engine 讀 Picture_ROM**
-   - 依 `(PetID, ExpID)` 取對應圖片
-   - 將 32×32 RGB565 pixel 串流送 SPI（等螢幕到貨後實作）
+4. **Display_Engine 直接渲染四象限**
+   - Pet0: 左上全亮
+   - Pet1: 右上全亮
+   - Pet2: 左下全亮
+   - Pet3: 右下全亮
 5. **Timer 持續累加**
    - CPU 用 `lw 0x8004` 取得時間基準
 6. **Buttons 讀取輸入**
@@ -38,7 +40,36 @@
 Figma 連結：  
 [Display Engine State Diagram](https://www.figma.com/online-whiteboard/create-diagram/e2e52799-1e9e-4b80-9301-de29ae7fc94b?utm_source=other&utm_content=edit_in_figjam&oai_id=&request_id=29f82aec-ad19-4474-95ed-742f5a8badf6)
 
-## 圖片 ROM 導入方式
+## 上板操作流程（一步一步）
+1. **組好 OLED 與 Basys3**
+   - 預設使用 SSD1306 128x64，連接到 Pmod JA：
+     - `screen_sclk` -> JA1 (J1)
+     - `screen_mosi` -> JA2 (L2)
+     - `screen_dc`   -> JA3 (J2)
+     - `screen_cs`   -> JA4 (G2)
+2. **產生 machine code**
+   - 用你提供的 Python assembler 轉 `PetGame.asm` 成 TXT/COE
+   - 注意：此 assembler 不支援 `.text/.globl` 等指令，已移除
+3. **更新指令記憶體**
+   - 把生成的 machine code 貼進 `Inst_Mem.v`
+4. **建立 Vivado 專案**
+   - Top 設為 `PetGame_SoC`
+   - 加入 `Basys3_PetGame.xdc`
+5. **綜合/實作/燒錄**
+   - 產生 bitstream 後下載到板子
+6. **操作遊戲**
+   - 按鈕功能：
+     - `buttons[0]` (BTNU): 餵食
+     - `buttons[1]` (BTNL): 互動
+     - `buttons[2]` (BTNR): 切換寵物
+   - 顯示內容（四象限）：
+     - Pet0: 左上全亮
+     - Pet1: 右上全亮
+     - Pet2: 左下全亮
+     - Pet3: 右下全亮
+   - LED 顯示：`leds[3]` 會反映 `display_busy`
+
+## 圖片 ROM 導入方式（後續擴充用）
 1. 使用工具產生初始化檔：
    - `tools/img_to_rgb565_rom.py`
 2. 產生的 `initial begin ... end` 貼到：
@@ -46,10 +77,8 @@ Figma 連結：
 3. 確保 `Picture_ROM.v` 被加入 Vivado sources
 
 ### ROM 預設規格
-- 5 隻寵物 × 5 表情 × 5帧动画
-- 32×32 (1024 pixels)
-- RGB565
-- ROM 深度 = 128000 entries
+- 此版本暫時不使用圖片 ROM
+- 若日後要換成圖片，可恢復 Picture_ROM 流程
 
 ## 待完成
 1. **Display_Engine 真正 SPI 實作**
@@ -57,8 +86,8 @@ Figma 連結：
    - SPI 時序/分頻（SCLK 頻率）
    - 像素資料串流（RGB565 16-bit）
    - busy 訊號正確拉高/拉低
-2. **圖片資產準備與 ROM 建立**
-   - 準備 32×32 圖片（5 pets × 5 exp）
+2. **圖片資產準備與 ROM 建立（選做）**
+   - 準備圖片資產
    - 用 `tools/img_to_rgb565_rom.py` 產生 init
    - 把 init 貼進 `Picture_ROM.v`
 3. **指令記憶體更新**
@@ -79,7 +108,7 @@ Figma 連結：
 位置：`petgame_soc_pipeline_opt/PetGame.asm`
 
 ### 暫存器分配
-- `x10`：當前寵物索引 (0~4)
+- `x10`：當前寵物索引 (0~3)
 - `x20`：按鈕輸入值
 - `x21`：上次 Timer 值（用於計時差）
 - `x30`：IO 基底 (0x8000)
@@ -94,7 +123,7 @@ Figma 連結：
 
 ### 程式流程分段
 1. 初始化寵物數值
-   - 把 5 隻寵物的 Sat/Hap 都設為 100
+   - 把 4 隻寵物的 Sat/Hap 都設為 100
    - 寫在 `0x4000, 0x4008, 0x4010, ...`
 2. 主迴圈 `_main_loop`
    - 讀 Timer，判斷是否過了一段時間
@@ -120,7 +149,7 @@ Figma 連結：
 3. `_play_pet`
    - Hap `+10`，超過 100 就設為 100
 4. `_switch_pet`
-   - 索引 +1，超過 4 就回到 0
+   - 索引 +1，超過 3 就回到 0
 5. `_update_expression`
    - 根據 Sat/Hap 決定表情代碼
 6. `_display_out`
