@@ -3,9 +3,9 @@ module Picture_ROM (
     input  wire [17:0] addr,
     output reg  [15:0] dout
 );
-    // ROM depth: 5 pets * 5 expressions * 32*32 = 25600
+    // ROM depth: 4 pets * 3 expressions * 32*32 = 12288
     // If you change pets/expressions/size, update ROM_DEPTH and addr width.
-    localparam ROM_DEPTH = 25600;
+    localparam ROM_DEPTH = 12288;
 
     (* rom_style = "block" *) reg [15:0] rom [0:ROM_DEPTH-1];
 

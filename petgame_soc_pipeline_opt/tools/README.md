@@ -12,7 +12,7 @@
 pet0_exp0.png
 pet0_exp1.png
 pet1_exp0.png
-pet4_exp4.png
+pet3_exp2.png
 ```
 
 ## 2. 圖片尺寸
@@ -45,7 +45,7 @@ python3 img_to_rgb565_rom.py \
   --format verilog \
   --mem-name rom \
   --width 32 --height 32 \
-  --pets 5 --exps 5 \
+  --pets 4 --exps 3 \
   --resize
 ```
 
@@ -91,4 +91,3 @@ pip install pillow
   會出現 WARN，缺的會保持為 0。
 - **尺寸不一致**：
   不加 `--resize` 會報錯。
-

@@ -6,7 +6,7 @@
 - `PetGame_SoC.v`：Top level
 - `pipeline.v`：已加入 buttons/timer/display 介面
 - `Data_Mem.v`：新增 memory-mapped IO (0x8000 / 0x8004 / 0x9000)
-- `Display_Engine.v`：SSD1306 SPI 顯示（四象限点亮模式）
+- `Display_Engine.v`：SSD1306 SPI 顯示（讀取 Picture_ROM 顯示 32x32 圖片）
 - `Basys3_PetGame.xdc`：Basys3 約束檔
 
 ## 位址映射
@@ -26,12 +26,9 @@
 3. **Display_Engine 接收到 `0x9000` 的寫入**
    - `display_we=1`，`display_cmd` 送出
    - `display_cmd` 格式：`[PetID<<8 | ExpID]`
-4. **Display_Engine 直接渲染四象限**
-   - Pet0: 左上全亮
-   - Pet1: 右上全亮
-   - Pet2: 左下全亮
-   - Pet3: 右下全亮
-   - 上电后会先清屏一次，避免随机黑点
+4. **Display_Engine 讀取 Picture_ROM**
+   - PetID/ExpID 對應一張 32x32 圖片
+   - SSD1306 以 1-bit 亮度方式顯示
 5. **Timer 持續累加**
    - CPU 用 `lw 0x8004` 取得時間基準
 6. **Buttons 讀取輸入**
@@ -70,16 +67,19 @@ Figma 連結：
      - Pet3: 右下全亮
    - LED 顯示：`leds[3]` 會反映 `display_busy`
 
-## 圖片 ROM 導入方式（後續擴充用）
+## 圖片 ROM 導入方式
 1. 使用工具產生初始化檔：
    - `tools/img_to_rgb565_rom.py`
 2. 產生的 `initial begin ... end` 貼到：
    - `Picture_ROM.v` 內的註解區塊
 3. 確保 `Picture_ROM.v` 被加入 Vivado sources
+4. 目前已內建一張小貓圖（pet0_exp0），其他 pet 顯示為全黑
 
 ### ROM 預設規格
-- 此版本暫時不使用圖片 ROM
-- 若日後要換成圖片，可恢復 Picture_ROM 流程
+- 4 隻寵物 × 3 表情
+- 32×32 (1024 pixels)
+- RGB565 (顯示時轉成 1-bit)
+- ROM 深度 = 12288 entries
 
 ## 待完成
 1. **Display_Engine 真正 SPI 實作**
@@ -87,8 +87,8 @@ Figma 連結：
    - SPI 時序/分頻（SCLK 頻率）
    - 像素資料串流（RGB565 16-bit）
    - busy 訊號正確拉高/拉低
-2. **圖片資產準備與 ROM 建立（選做）**
-   - 準備圖片資產
+2. **圖片資產準備與 ROM 建立**
+   - 準備 4×3 張圖片（pet0..pet3, exp0..exp2）
    - 用 `tools/img_to_rgb565_rom.py` 產生 init
    - 把 init 貼進 `Picture_ROM.v`
 3. **指令記憶體更新**

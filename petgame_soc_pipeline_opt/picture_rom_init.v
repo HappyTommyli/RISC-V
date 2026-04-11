@@ -1,9 +1,8 @@
-integer i;
 initial begin
-
+    integer i;
     for (i = 0; i < ROM_DEPTH; i = i + 1) rom[i] = 16'h0000;
 
-    // 32x32 image payload starts at rom[0]
+    // 32x32 cat image payload starts at rom[0] (pet0 exp0)
     rom[135] = 16'hffff;
     rom[136] = 16'hffff;
     rom[148] = 16'hffff;

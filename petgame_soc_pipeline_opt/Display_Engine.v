@@ -9,22 +9,26 @@ module Display_Engine (
     output reg         dc,
     output reg         cs
 );
-    // SSD1306 128x64, 1-bit color.
-    // Pet 0: top-left, Pet 1: top-right, Pet 2: bottom-left, Pet 3: bottom-right.
+    // SSD1306 128x64, 1-bit color, draw 32x32 sprite from Picture_ROM.
 
     localparam integer SCLK_DIV = 50; // 100MHz -> ~1MHz SCLK
+    localparam [6:0] X_OFFSET = 7'd48; // center (128-32)/2 = 48
+    localparam [2:0] PAGE_BASE = 3'd2; // center vertically (pages 2..5)
 
-    localparam [4:0] ST_BOOT      = 5'd0;
-    localparam [4:0] ST_INIT_NEXT = 5'd1;
-    localparam [4:0] ST_IDLE      = 5'd2;
-    localparam [4:0] ST_PAGE_CMD0 = 5'd3;
-    localparam [4:0] ST_PAGE_CMD1 = 5'd4;
-    localparam [4:0] ST_PAGE_CMD2 = 5'd5;
-    localparam [4:0] ST_DATA_SEND = 5'd6;
-    localparam [4:0] ST_DATA_NEXT = 5'd7;
-    localparam [4:0] ST_TX_SETUP  = 5'd8;
-    localparam [4:0] ST_TX_HIGH   = 5'd9;
-    localparam [4:0] ST_TX_LOW    = 5'd10;
+    localparam [4:0] ST_BOOT        = 5'd0;
+    localparam [4:0] ST_INIT_NEXT   = 5'd1;
+    localparam [4:0] ST_IDLE        = 5'd2;
+    localparam [4:0] ST_PAGE_CMD0   = 5'd3;
+    localparam [4:0] ST_PAGE_CMD1   = 5'd4;
+    localparam [4:0] ST_PAGE_CMD2   = 5'd5;
+    localparam [4:0] ST_DATA_REQ    = 5'd6;
+    localparam [4:0] ST_DATA_WAIT   = 5'd7;
+    localparam [4:0] ST_DATA_SAMPLE = 5'd8;
+    localparam [4:0] ST_DATA_SEND   = 5'd9;
+    localparam [4:0] ST_DATA_NEXT   = 5'd10;
+    localparam [4:0] ST_TX_SETUP    = 5'd11;
+    localparam [4:0] ST_TX_HIGH     = 5'd12;
+    localparam [4:0] ST_TX_LOW      = 5'd13;
 
     localparam [4:0] INIT_LAST = 5'd24;
 
@@ -32,19 +36,34 @@ module Display_Engine (
     reg [4:0] next_state;
     reg [4:0] init_idx;
 
-    reg [2:0] page;   // 0..7
-    reg [6:0] col;    // 0..127
+    reg [1:0] page;        // 0..3 for 32px height
+    reg [5:0] col;         // 0..31
+    reg [2:0] bit_row;     // 0..7 inside page
+    reg [7:0] frame_byte;
+
+    reg [17:0] start_addr; // (PetID*3 + ExpID) * 1024
+    reg [17:0] rom_addr;
 
     reg [7:0] tx_byte;
     reg       tx_dc;
     reg [2:0] tx_bit;
     reg [7:0] div_cnt;
 
-    reg [1:0] pet_id;
-    reg       clear_phase;
-
-    // Clamp PetID to 0..3
+    // Clamp PetID to 0..3, ExpID to 0..2
     wire [1:0] cmd_pet = (cmd_data[15:8] < 8'd4) ? cmd_data[9:8] : 2'd0;
+    wire [1:0] cmd_exp = (cmd_data[7:0]  < 8'd3) ? cmd_data[1:0]  : 2'd0;
+    wire [17:0] cmd_start_addr =
+        (({16'd0, cmd_pet} * 18'd3) + {16'd0, cmd_exp}) << 10;
+
+    wire [5:0] y_in_tile = {page, 3'b000} + bit_row;
+    wire [9:0] pixel_idx = ({4'd0, y_in_tile} << 5) + {4'd0, col};
+
+    wire [15:0] current_pixel;
+    Picture_ROM rom_inst (
+        .clk(clk),
+        .addr(rom_addr),
+        .dout(current_pixel)
+    );
 
     function [7:0] init_cmd;
         input [4:0] idx;
@@ -80,44 +99,36 @@ module Display_Engine (
         end
     endfunction
 
-    // Return a data byte for (page, col) based on pet quadrant.
-    function [7:0] quadrant_byte;
-        input [1:0] pet;
-        input [2:0] pg;
-        input [6:0] cl;
-        reg top;
-        reg left;
+    // RGB565 -> mono threshold for SSD1306
+    function pixel_to_mono;
+        input [15:0] rgb565;
+        reg [6:0] lum_approx;
         begin
-            top  = (pg <= 3'd3);   // rows 0..31
-            left = (cl <= 7'd63);  // cols 0..63
-            case (pet)
-                2'd0: quadrant_byte = (top && left)  ? 8'hFF : 8'h00;
-                2'd1: quadrant_byte = (top && !left) ? 8'hFF : 8'h00;
-                2'd2: quadrant_byte = (!top && left) ? 8'hFF : 8'h00;
-                2'd3: quadrant_byte = (!top && !left)? 8'hFF : 8'h00;
-                default: quadrant_byte = 8'h00;
-            endcase
+            lum_approx = {2'b00, rgb565[15:11]} + {1'b0, rgb565[10:5]} + {2'b00, rgb565[4:0]};
+            pixel_to_mono = (lum_approx >= 7'd24);
         end
     endfunction
 
     always @(posedge clk) begin
         if (reset) begin
-            state    <= ST_BOOT;
+            state      <= ST_BOOT;
             next_state <= ST_BOOT;
-            init_idx <= 5'd0;
-            page     <= 3'd0;
-            col      <= 7'd0;
-            pet_id   <= 2'd0;
-            clear_phase <= 1'b1;
-            tx_byte  <= 8'd0;
-            tx_dc    <= 1'b0;
-            tx_bit   <= 3'd0;
-            div_cnt  <= 8'd0;
-            busy     <= 1'b1;
-            sclk     <= 1'b0;
-            mosi     <= 1'b0;
-            dc       <= 1'b0;
-            cs       <= 1'b1;
+            init_idx   <= 5'd0;
+            page       <= 2'd0;
+            col        <= 6'd0;
+            bit_row    <= 3'd0;
+            frame_byte <= 8'd0;
+            start_addr <= 0;
+            rom_addr   <= 0;
+            tx_byte    <= 8'd0;
+            tx_dc      <= 1'b0;
+            tx_bit     <= 3'd0;
+            div_cnt    <= 8'd0;
+            busy       <= 1'b1;
+            sclk       <= 1'b0;
+            mosi       <= 1'b0;
+            dc         <= 1'b0;
+            cs         <= 1'b1;
         end else begin
             case (state)
                 ST_BOOT: begin
@@ -133,10 +144,7 @@ module Display_Engine (
                     if (init_idx == INIT_LAST) begin
                         busy     <= 1'b0;
                         init_idx <= 5'd0;
-                        page     <= 3'd0;
-                        col      <= 7'd0;
-                        clear_phase <= 1'b1;
-                        state    <= ST_PAGE_CMD0;
+                        state    <= ST_IDLE;
                     end else begin
                         init_idx   <= init_idx + 1'b1;
                         tx_byte    <= init_cmd(init_idx + 1'b1);
@@ -151,58 +159,78 @@ module Display_Engine (
                     cs   <= 1'b1;
                     sclk <= 1'b0;
                     if (we) begin
-                        pet_id <= cmd_pet;
-                        page   <= 3'd0;
-                        col    <= 7'd0;
-                        clear_phase <= 1'b0;
-                        busy   <= 1'b1;
-                        state  <= ST_PAGE_CMD0;
+                        start_addr <= cmd_start_addr;
+                        page       <= 2'd0;
+                        col        <= 6'd0;
+                        bit_row    <= 3'd0;
+                        frame_byte <= 8'd0;
+                        busy       <= 1'b1;
+                        state      <= ST_PAGE_CMD0;
                     end
                 end
 
                 ST_PAGE_CMD0: begin
-                    tx_byte    <= 8'hB0 + {5'd0, page};
+                    tx_byte    <= (8'hB0 + PAGE_BASE + {6'd0, page});
                     tx_dc      <= 1'b0;
                     next_state <= ST_PAGE_CMD1;
                     state      <= ST_TX_SETUP;
                 end
 
                 ST_PAGE_CMD1: begin
-                    tx_byte    <= 8'h00; // column low
+                    tx_byte    <= {4'h0, X_OFFSET[3:0]};
                     tx_dc      <= 1'b0;
                     next_state <= ST_PAGE_CMD2;
                     state      <= ST_TX_SETUP;
                 end
 
                 ST_PAGE_CMD2: begin
-                    tx_byte    <= 8'h10; // column high
+                    tx_byte    <= {4'h1, X_OFFSET[6:4]};
                     tx_dc      <= 1'b0;
-                    next_state <= ST_DATA_SEND;
+                    next_state <= ST_DATA_REQ;
                     state      <= ST_TX_SETUP;
                 end
 
+                ST_DATA_REQ: begin
+                    rom_addr   <= start_addr + {8'd0, pixel_idx};
+                    next_state <= ST_DATA_WAIT;
+                    state      <= ST_DATA_WAIT;
+                end
+
+                ST_DATA_WAIT: begin
+                    state <= ST_DATA_SAMPLE;
+                end
+
+                ST_DATA_SAMPLE: begin
+                    frame_byte[bit_row] <= pixel_to_mono(current_pixel);
+                    next_state <= (bit_row == 3'd7) ? ST_DATA_SEND : ST_DATA_REQ;
+                    state      <= (bit_row == 3'd7) ? ST_DATA_SEND : ST_DATA_REQ;
+                end
+
                 ST_DATA_SEND: begin
-                    tx_byte    <= clear_phase ? 8'h00 : quadrant_byte(pet_id, page, col);
+                    tx_byte    <= frame_byte;
                     tx_dc      <= 1'b1;
                     next_state <= ST_DATA_NEXT;
                     state      <= ST_TX_SETUP;
                 end
 
                 ST_DATA_NEXT: begin
-                    if (col == 7'd127) begin
-                        col <= 7'd0;
-                        if (page == 3'd7) begin
-                            if (clear_phase) begin
-                                clear_phase <= 1'b0;
+                    if (bit_row == 3'd7) begin
+                        bit_row <= 3'd0;
+                        if (col == 6'd31) begin
+                            col <= 6'd0;
+                            if (page == 2'd3) begin
+                                state <= ST_IDLE;
+                            end else begin
+                                page <= page + 1'b1;
+                                state <= ST_PAGE_CMD0;
                             end
-                            state <= ST_IDLE;
                         end else begin
-                            page <= page + 1'b1;
-                            state <= ST_PAGE_CMD0;
+                            col <= col + 1'b1;
+                            state <= ST_DATA_REQ;
                         end
                     end else begin
-                        col <= col + 1'b1;
-                        state <= ST_DATA_SEND;
+                        bit_row <= bit_row + 1'b1;
+                        state <= ST_DATA_REQ;
                     end
                 end
 
