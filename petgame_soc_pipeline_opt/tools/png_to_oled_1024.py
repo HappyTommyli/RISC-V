@@ -1,10 +1,10 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Convert one PNG image to 32x32 (1024 pixels) monochrome data for SSD1306 flow.
+Convert one PNG image to 32x32 (1024 pixels) monochrome data for SSD1306.
 
 Default output is a flat 1024-pixel text file (0/1, one per line, row-major).
-You can also emit a Verilog init block compatible with Picture_ROM.v style:
+Optional verilog output format:
     rom[idx] = 16'hffff / 16'h0000
 """
 
@@ -37,9 +37,10 @@ def to_bits(img: Image.Image, threshold: int, invert: bool, on_color: str):
     for y in range(h):
         for x in range(w):
             if on_color == "dark":
-                # 默认策略：深色像素点亮，浅色背景熄灭（更符合“背景全黑”）
+                # Dark pixels are ON, light pixels are OFF.
                 bit = 1 if pix[x, y] < threshold else 0
             else:
+                # Light pixels are ON, dark pixels are OFF.
                 bit = 1 if pix[x, y] >= threshold else 0
             if invert:
                 bit = 1 - bit
@@ -83,8 +84,8 @@ def main():
     ap.add_argument(
         "--on-color",
         choices=["dark", "light"],
-        default="dark",
-        help="which grayscale side is treated as ON pixel (default: dark)",
+        default="light",
+        help="which grayscale side is treated as ON pixel (default: light)",
     )
     ap.add_argument("--invert", action="store_true", help="invert output bits")
     ap.add_argument("--resize", action="store_true", help="resize input image to target size")

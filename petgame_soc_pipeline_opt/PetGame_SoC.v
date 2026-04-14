@@ -21,6 +21,20 @@ module PetGame_SoC (
     wire display_we;
     wire [31:0] display_cmd;
     wire display_busy;
+    reg  [2:0] buttons_d;
+    wire invert_toggle_pulse;
+    wire all_on_toggle_pulse;
+    wire redraw_pulse;
+
+    // One-pulse detect for buttons.
+    always @(posedge clk) begin
+        if (reset) buttons_d <= 3'b000;
+        else       buttons_d <= buttons;
+    end
+    // BTN0: show cat (redraw slot0). Disable other test toggles for now.
+    assign invert_toggle_pulse = 1'b0;
+    assign all_on_toggle_pulse = 1'b0;
+    assign redraw_pulse        = buttons[0] & ~buttons_d[0];
 
     pipeline cpu_inst (
         .clk(clk),
@@ -38,6 +52,9 @@ module PetGame_SoC (
         .reset(reset),
         .cmd_data(display_cmd),
         .we(display_we),
+        .invert_toggle(invert_toggle_pulse),
+        .all_on_toggle(all_on_toggle_pulse),
+        .redraw_pulse(redraw_pulse),
         .busy(display_busy),
         .sclk(screen_sclk),
         .mosi(screen_mosi),
