@@ -122,6 +122,9 @@ module Display_Engine (
                         init_idx <= init_idx + 1'b1;
                         tx_byte <= init_cmd(init_idx + 1'b1);
                         tx_dc <= 1'b0;
+                        init_idx <= init_idx + 1'b1;
+                        tx_byte <= init_cmd(init_idx + 1'b1);
+                        tx_dc <= 1'b0;
                         next_state <= ST_INIT_NEXT;
                         state <= ST_TX_SETUP;
                     end
@@ -158,6 +161,7 @@ module Display_Engine (
                     tx_dc <= 1'b0;
                     next_state <= ST_PAGE_CMD1;
                     state <= ST_TX_SETUP;
+                    state <= ST_TX_SETUP;
                 end
 
                 // 设置列起始地址低 4 位
@@ -165,6 +169,7 @@ module Display_Engine (
                     tx_byte <= {4'h0, X_OFFSET[3:0]};
                     tx_dc <= 1'b0;
                     next_state <= ST_PAGE_CMD2;
+                    state <= ST_TX_SETUP;
                     state <= ST_TX_SETUP;
                 end
 
@@ -174,6 +179,7 @@ module Display_Engine (
                     tx_dc <= 1'b0;
                     next_state <= ST_DATA_REQ;
                     state <= ST_TX_SETUP;
+                    state <= ST_TX_SETUP;
                 end
 
                 // 请求 ROM 数据
@@ -182,6 +188,7 @@ module Display_Engine (
                     state <= ST_DATA_WAIT;
                 end
 
+                ST_DATA_WAIT: state <= ST_DATA_SAMPLE;
                 ST_DATA_WAIT: state <= ST_DATA_SAMPLE;
 
                 // 采样并构造字节 (SSD1306 在 Page 模式下，1 个 Byte 对应垂直 8 个像素)
@@ -201,6 +208,7 @@ module Display_Engine (
                     tx_byte <= frame_byte;
                     tx_dc   <= 1'b1;
                     next_state <= ST_DATA_NEXT;
+                    state <= ST_TX_SETUP;
                     state <= ST_TX_SETUP;
                 end
 
@@ -224,6 +232,9 @@ module Display_Engine (
                     cs <= 1'b0;
                     dc <= tx_dc;
                     mosi <= tx_byte[7];
+                    cs <= 1'b0;
+                    dc <= tx_dc;
+                    mosi <= tx_byte[7];
                     tx_bit <= 3'd7;
                     div_cnt <= 8'd0;
                     state <= ST_TX_HIGH;
@@ -234,6 +245,7 @@ module Display_Engine (
                         sclk <= 1'b1;
                         div_cnt <= 8'd0;
                         state <= ST_TX_LOW;
+                    end else div_cnt <= div_cnt + 1'b1;
                     end else div_cnt <= div_cnt + 1'b1;
                 end
 
@@ -249,6 +261,7 @@ module Display_Engine (
                             mosi <= tx_byte[tx_bit - 1'b1];
                             state <= ST_TX_HIGH;
                         end
+                    end else div_cnt <= div_cnt + 1'b1;
                     end else div_cnt <= div_cnt + 1'b1;
                 end
 
