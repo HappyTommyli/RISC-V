@@ -1,15 +1,16 @@
 module Picture_ROM (
     input  wire        clk,
-    input  wire [17:0] addr,
-    output reg  [15:0] dout
+    input  wire [11:0] addr, // 12 張圖 * 128 Byte = 1536
+    output reg  [7:0]  dout
 );
-    // ROM depth: 4 pets * 3 expressions * 32*32 = 12288
-    localparam ROM_DEPTH = 12288;
+    localparam ROM_DEPTH = 1536;
 
-    (* rom_style = "block" *) reg [15:0] rom [0:ROM_DEPTH-1];
+    (* rom_style = "block" *) reg [7:0] rom [0:ROM_DEPTH-1];
 
-    // Load generated pixel data from project root file: picture_rom_init.v
-`include "picture_rom_init.v"
+    // 使用 include 載入數據
+    initial begin
+        `include "picture_rom_init.v"
+    end
 
     always @(posedge clk) begin
         dout <= rom[addr];
