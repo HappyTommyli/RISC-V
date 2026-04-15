@@ -1,11 +1,11 @@
 module Display_Engine (
     input  wire        clk,
     input  wire        reset,
-    input  wire [31:0] cmd_data,    // [15:8]=PetID, [7:0]=ExpID
-    input  wire        we,          // 0x9000 write enable
-    input  wire        invert_toggle, // 切换黑白反色
-    input  wire        all_on_toggle, // 切换全亮模式
-    input  wire        redraw_pulse,  // 手动重绘
+    input  wire [31:0] cmd_data,      // [15:8]=PetID, [7:0]=ExpID
+    input  wire        we,            // write enable
+    input  wire        invert_toggle, // 切換黑白反色
+    input  wire        all_on_toggle, // 切換全亮模式
+    input  wire        redraw_pulse,  // 手動重繪
     output reg         busy,
     output reg         sclk,
     output reg         mosi,
@@ -13,54 +13,53 @@ module Display_Engine (
     output reg         cs
 );
 
-    // --- 参数与状态定义 ---
-    localparam integer SCLK_DIV = 50; 
-    localparam [6:0] X_OFFSET = 7'd0; 
-    localparam [2:0] PAGE_BASE = 3'd0; 
+    // --- 參數與狀態定義 ---
+    localparam integer SCLK_DIV = 25;   // 50MHz / (25*2) = 1MHz SCLK (穩定的速度)
+    localparam [6:0] X_OFFSET = 7'd0;   
+    localparam [2:0] PAGE_BASE = 3'd0;  
 
     localparam [4:0] ST_BOOT         = 5'd0,
                      ST_INIT_NEXT    = 5'd1,
-                     ST_IDLE         = 5'd2,
-                     ST_PAGE_CMD0    = 5'd3,
-                     ST_PAGE_CMD1    = 5'd4,
-                     ST_PAGE_CMD2    = 5'd5,
-                     ST_DATA_REQ     = 5'd6,
-                     ST_DATA_WAIT    = 5'd7,
-                     ST_DATA_SAMPLE  = 5'd8,
-                     ST_DATA_SEND    = 5'd9,
-                     ST_DATA_NEXT    = 5'd10,
-                     ST_TX_SETUP     = 5'd11,
-                     ST_TX_HIGH      = 5'd12,
-                     ST_TX_LOW       = 5'd13;
+                     ST_CLEAR_PREP   = 5'd2, // 新增：清屏準備
+                     ST_CLEAR_DATA   = 5'd3, // 新增：發送清屏數據
+                     ST_IDLE         = 5'd4,
+                     ST_PAGE_CMD0    = 5'd5,
+                     ST_PAGE_CMD1    = 5'd6,
+                     ST_PAGE_CMD2    = 5'd7,
+                     ST_DATA_REQ     = 5'd8,
+                     ST_DATA_WAIT    = 5'd9,
+                     ST_DATA_SAMPLE  = 5'd10,
+                     ST_DATA_SEND    = 5'd11,
+                     ST_DATA_NEXT    = 5'd12,
+                     ST_TX_SETUP     = 5'd13,
+                     ST_TX_HIGH      = 5'd14,
+                     ST_TX_LOW       = 5'd15;
 
     localparam [4:0] INIT_LAST = 5'd24;
 
-    // --- 寄存器定义 ---
+    // --- 寄存器定義 ---
     reg [4:0]  state, next_state;
     reg [4:0]  init_idx;
+    reg [3:0]  clear_page; // 0~7 共 8 頁
+    reg [6:0]  clear_col;  // 0~127 共 128 列
     reg [1:0]  page;    
     reg [5:0]  col;     
     reg [2:0]  bit_row; 
     reg [7:0]  frame_byte;
-    reg [17:0] start_addr; 
     reg [17:0] rom_addr;
     reg [7:0]  tx_byte;
     reg        tx_dc;
     reg [2:0]  tx_bit;
     reg [7:0]  div_cnt;
     reg        invert_mode, all_on_mode;
-    reg [17:0] last_draw_addr;
+    reg [23:0] wait_cnt; // 啟動延時計數器
 
-    // --- 核心逻辑：寻址与像素提取 ---
-    // 假设 ROM 为 16 位宽，总像素 32x32=1024
-    // pixel_idx 为 0~1023
-    wire [9:0]  pixel_idx = ({4'd0, page, bit_row} << 5) + {4'd0, col};
-    
-    // 计算 ROM 字地址（1024 像素 / 16 位每字 = 64 个字）
-    wire [17:0] target_word_addr = start_addr + (pixel_idx >> 4); 
-    
-    // 计算在 16 位字中的偏移 (0~15)
-    // 假设存储时 16'h8000 是最左边的像素，则用 15 - offset
+    // --- 核心邏輯：尋址 ---
+    // 計算 ROM 地址：(page*32 + bit_row*32 + col)
+    wire [9:0] pixel_idx = ({4'd0, page} << 8) + ({5'd0, bit_row} << 5) + {4'd0, col};
+    // 假設你的 PetID 和 ExpID 會影響 start_addr，這裡簡化處理
+    wire [17:0] start_addr = (cmd_data[15:8] * 4 + cmd_data[7:0]) * 1024;
+    wire [17:0] target_word_addr = start_addr + (pixel_idx >> 4);
     wire [3:0]  bit_offset = pixel_idx[3:0];
 
     wire [15:0] current_pixel_word;
@@ -78,51 +77,82 @@ module Display_Engine (
             5'd3:  init_cmd = 8'hA8; 5'd4:  init_cmd = 8'h3F;
             5'd5:  init_cmd = 8'hD3; 5'd6:  init_cmd = 8'h00;
             5'd7:  init_cmd = 8'h40;
-            5'd8:  init_cmd = 8'h8D; 5'd9:  init_cmd = 8'h14;
-            5'd10: init_cmd = 8'h20; 5'd11: init_cmd = 8'h02; // Page addressing mode
-            5'd12: init_cmd = 8'hA1; // Segment remap (X-flip)
-            5'd13: init_cmd = 8'hC8; // COM scan direction (Y-flip)
-            5'd14: init_cmd = 8'hDA; 5'd15: init_cmd = 8'h12;
-            5'd16: init_cmd = 8'h81; 5'd17: init_cmd = 8'hCF; // Contrast
+            5'd8:  init_cmd = 8'h8D; 5'd9:  init_cmd = 8'h14; // Charge Pump
+            5'd10: init_cmd = 8'h20; 5'd11: init_cmd = 8'h02; // Page mode
+            5'd12: init_cmd = 8'hA1; // X-flip
+            5'd13: init_cmd = 8'hC8; // Y-flip
+            5'd14: init_cmd = 8'hDA; 5'd15: init_cmd = 8'h02; // Sequential (修正黑點)
+            5'd16: init_cmd = 8'h81; 5'd17: init_cmd = 8'h7F; // 亮度
             5'd18: init_cmd = 8'hD9; 5'd19: init_cmd = 8'hF1;
             5'd20: init_cmd = 8'hDB; 5'd21: init_cmd = 8'h40;
-            5'd22: init_cmd = 8'hA4; // Resume RAM
-            5'd23: init_cmd = 8'hA6; // Normal display
+            5'd22: init_cmd = 8'hA4; // Resume RAM (關鍵：必須是 A4 才能顯示圖片)
+            5'd23: init_cmd = 8'hA6; // Normal
             5'd24: init_cmd = 8'hAF; // display on
             default: init_cmd = 8'hAE;
         endcase
     endfunction
 
-    // --- 状态机逻辑 ---
+    // --- 狀態機邏輯 ---
     always @(posedge clk) begin
         if (reset) begin
             state <= ST_BOOT;
             busy <= 1'b1;
             cs <= 1'b1;
+            wait_cnt <= 0;
             {page, col, bit_row} <= 0;
+            {clear_page, clear_col} <= 0;
             invert_mode <= 1'b0;
             all_on_mode <= 1'b0;
-            start_addr <= 18'd0;
         end else begin
             case (state)
                 ST_BOOT: begin
-                    busy    <= 1'b1;
-                    tx_byte <= init_cmd(5'd0);
-                    tx_dc   <= 1'b0;
-                    init_idx <= 5'd0;
-                    next_state <= ST_INIT_NEXT;
-                    state   <= ST_TX_SETUP;
+                    if (wait_cnt < 24'd100000) begin // 啟動先等 2ms
+                        wait_cnt <= wait_cnt + 1;
+                        busy <= 1'b1;
+                    end else begin
+                        init_idx <= 5'd0;
+                        tx_byte <= init_cmd(5'd0);
+                        tx_dc <= 1'b0;
+                        next_state <= ST_INIT_NEXT;
+                        state <= ST_TX_SETUP;
+                    end
                 end
 
                 ST_INIT_NEXT: begin
                     if (init_idx == INIT_LAST) begin
-                        busy <= 1'b0;
-                        state <= ST_IDLE;
+                        state <= ST_CLEAR_PREP; // 初始化完，強制進入清屏
+                        clear_page <= 0;
+                        clear_col <= 0;
                     end else begin
                         init_idx <= init_idx + 1'b1;
                         tx_byte <= init_cmd(init_idx + 1'b1);
                         tx_dc <= 1'b0;
                         next_state <= ST_INIT_NEXT;
+                        state <= ST_TX_SETUP;
+                    end
+                end
+
+                // --- 新增：自動清屏邏輯 (填滿 0xFF) ---
+                ST_CLEAR_PREP: begin
+                    tx_byte <= (8'hB0 + {4'd0, clear_page}); // 定位 Page
+                    tx_dc <= 1'b0;
+                    next_state <= ST_CLEAR_DATA;
+                    state <= ST_TX_SETUP;
+                end
+
+                ST_CLEAR_DATA: begin
+                    tx_byte <= 8'hFF; // 背景設為全亮
+                    tx_dc <= 1'b1;
+                    if (clear_col == 127) begin
+                        clear_col <= 0;
+                        if (clear_page == 7) state <= ST_IDLE; // 全螢幕清完
+                        else begin
+                            clear_page <= clear_page + 1'b1;
+                            state <= ST_CLEAR_PREP;
+                        end
+                    end else begin
+                        clear_col <= clear_col + 1'b1;
+                        next_state <= ST_CLEAR_DATA;
                         state <= ST_TX_SETUP;
                     end
                 end
@@ -145,22 +175,20 @@ module Display_Engine (
                         next_state <= ST_IDLE;
                         state <= ST_TX_SETUP;
                     end else if (we || redraw_pulse) begin
-                        // 开始绘制 32x32 区域
                         page <= 0; col <= 0; bit_row <= 0;
                         busy <= 1'b1;
                         state <= ST_PAGE_CMD0;
                     end
                 end
 
-                // 设置 Page 地址 (B0-B7)
+                // --- 繪製 32x32 寵物圖案 ---
                 ST_PAGE_CMD0: begin
-                    tx_byte <= (8'hB0 + PAGE_BASE + {6'd0, page});
+                    tx_byte <= (8'hB0 + PAGE_BASE + {5'd0, page});
                     tx_dc <= 1'b0;
                     next_state <= ST_PAGE_CMD1;
                     state <= ST_TX_SETUP;
                 end
 
-                // 设置列起始地址低 4 位
                 ST_PAGE_CMD1: begin
                     tx_byte <= {4'h0, X_OFFSET[3:0]};
                     tx_dc <= 1'b0;
@@ -168,7 +196,6 @@ module Display_Engine (
                     state <= ST_TX_SETUP;
                 end
 
-                // 设置列起始地址高 4 位
                 ST_PAGE_CMD2: begin
                     tx_byte <= {4'h1, X_OFFSET[6:4]};
                     tx_dc <= 1'b0;
@@ -176,7 +203,6 @@ module Display_Engine (
                     state <= ST_TX_SETUP;
                 end
 
-                // 请求 ROM 数据
                 ST_DATA_REQ: begin
                     rom_addr <= target_word_addr;
                     state <= ST_DATA_WAIT;
@@ -184,22 +210,19 @@ module Display_Engine (
 
                 ST_DATA_WAIT: state <= ST_DATA_SAMPLE;
 
-                // 采样并构造字节 (SSD1306 在 Page 模式下，1 个 Byte 对应垂直 8 个像素)
                 ST_DATA_SAMPLE: begin
-                    // 提取单 bit 像素。注意 15-bit_offset 取决于你存入 ROM 的端序
-                    frame_byte[bit_row] <= (current_pixel_word[15 - bit_offset] != 1'b0);
-                    
-                    if (bit_row == 3'd7) begin
-                        state <= ST_DATA_SEND; // 垂直 8 bits 凑齐，发送
-                    end else begin
+                    // 這裡根據你的黑白邏輯調整，若要反色，改為 == 1'b0
+                    frame_byte[bit_row] <= (current_pixel_word[15 - bit_offset] != 16'd0);
+                    if (bit_row == 3'd7) state <= ST_DATA_SEND;
+                    else begin
                         bit_row <= bit_row + 1'b1;
-                        state <= ST_DATA_REQ; // 继续读下一点
+                        state <= ST_DATA_REQ;
                     end
                 end
 
                 ST_DATA_SEND: begin
                     tx_byte <= frame_byte;
-                    tx_dc   <= 1'b1;
+                    tx_dc <= 1'b1;
                     next_state <= ST_DATA_NEXT;
                     state <= ST_TX_SETUP;
                 end
@@ -208,7 +231,7 @@ module Display_Engine (
                     bit_row <= 3'd0;
                     if (col == 6'd31) begin
                         col <= 6'd0;
-                        if (page == 2'd3) state <= ST_IDLE; // 32 像素高 = 4 Pages
+                        if (page == 2'd3) state <= ST_IDLE;
                         else begin
                             page <= page + 1'b1;
                             state <= ST_PAGE_CMD0;
@@ -219,7 +242,7 @@ module Display_Engine (
                     end
                 end
 
-                // --- SPI 物理传输状态 ---
+                // --- SPI 物理層 ---
                 ST_TX_SETUP: begin
                     cs <= 1'b0;
                     dc <= tx_dc;
@@ -241,10 +264,8 @@ module Display_Engine (
                     if (div_cnt == SCLK_DIV - 1) begin
                         sclk <= 1'b0;
                         div_cnt <= 8'd0;
-                        if (tx_bit == 3'd0) begin
-                            // 这里不立即拉高 CS 以保持传输连贯性
-                            state <= next_state;
-                        end else begin
+                        if (tx_bit == 3'd0) state <= next_state;
+                        else begin
                             tx_bit <= tx_bit - 1'b1;
                             mosi <= tx_byte[tx_bit - 1'b1];
                             state <= ST_TX_HIGH;
