@@ -17,13 +17,12 @@ module Display_Engine_FB128 (
     localparam [4:0] ST_BOOT      = 5'd0,
                      ST_INIT_NEXT = 5'd1,
                      ST_FRAME_CMD = 5'd2,
-                     ST_FRAME_READ = 5'd3, // 新增：等待 RAM 讀取的一拍
-                     ST_FRAME_DATA = 5'd4,
-                     ST_FRAME_NEXT = 5'd5,
-                     ST_TX_SETUP   = 5'd6,
-                     ST_TX_HIGH    = 5'd7,
-                     ST_TX_LOW     = 5'd8,
-                     ST_FRAME_WAIT = 5'd9;
+                     ST_FRAME_DATA = 5'd3, // 跳過讀取，直接給數據
+                     ST_FRAME_NEXT = 5'd4,
+                     ST_TX_SETUP   = 5'd5,
+                     ST_TX_HIGH    = 5'd6,
+                     ST_TX_LOW     = 5'd7,
+                     ST_FRAME_WAIT = 5'd8;
 
     reg [4:0] state, next_state;
     reg [4:0] init_idx;
@@ -35,16 +34,7 @@ module Display_Engine_FB128 (
     reg [7:0] div_cnt;
     reg [23:0] wait_cnt;
 
-    // --- Framebuffer: 使用簡單雙埠 RAM 結構 ---
-    reg [7:0] fb [0:1023];
-    always @(posedge clk) begin
-        if (fb_we) fb[fb_waddr] <= fb_wdata;
-    end
-    
-    // 讀取端：data_cnt 改變後，下一拍 fb_out 就會準備好
-    wire [7:0] fb_out = fb[data_cnt];
-
-    // SSD1306 初始化指令 (與原代碼相同)
+    // 初始化指令列表
     function [7:0] init_cmd(input [4:0] idx);
         case (idx)
             5'd0:  init_cmd = 8'hAE; 5'd1:  init_cmd = 8'hD5; 5'd2:  init_cmd = 8'h80;
@@ -63,7 +53,6 @@ module Display_Engine_FB128 (
     always @(posedge clk) begin
         if (reset) begin
             state <= ST_BOOT;
-            init_idx <= 0;
             wait_cnt <= 0;
             busy <= 1'b1;
             res <= 1'b0;
@@ -72,11 +61,11 @@ module Display_Engine_FB128 (
         end else begin
             case (state)
                 ST_BOOT: begin
-                    if (wait_cnt < 24'd100000) begin
+                    if (wait_cnt < 24'd1000000) begin // 增加重置等待時間
                         res <= 1'b0;
                         wait_cnt <= wait_cnt + 1'b1;
-                    end else if (wait_cnt < 24'd1000000) begin
-                        res <= 1'b1; // 釋放 Reset
+                    end else if (wait_cnt < 24'd2000000) begin
+                        res <= 1'b1;
                         wait_cnt <= wait_cnt + 1'b1;
                     end else begin
                         init_idx <= 0;
@@ -109,7 +98,7 @@ module Display_Engine_FB128 (
                     endcase
                     if (cmd_idx == 3'd5) begin
                         data_cnt <= 0;
-                        state <= ST_FRAME_READ; // 進入讀取循環
+                        state <= ST_FRAME_DATA;
                     end else begin
                         cmd_idx <= cmd_idx + 1'b1;
                         next_state <= ST_FRAME_CMD;
@@ -117,13 +106,9 @@ module Display_Engine_FB128 (
                     end
                 end
 
-                ST_FRAME_READ: begin
-                    // 這一拍結束後，fb_out 就會因為 data_cnt 的地址而輸出正確數據
-                    state <= ST_FRAME_DATA;
-                end
-
                 ST_FRAME_DATA: begin
-                    tx_byte <= fb_out; // 獲取 RAM 數據
+                    // --- 強制點亮核心：直接給 0xFF (全白) 或 0xAA (條紋) ---
+                    tx_byte <= 8'hFF; 
                     tx_dc <= 1'b1;
                     next_state <= ST_FRAME_NEXT;
                     state <= ST_TX_SETUP;
@@ -135,14 +120,14 @@ module Display_Engine_FB128 (
                         state <= ST_FRAME_WAIT;
                     end else begin
                         data_cnt <= data_cnt + 1'b1;
-                        state <= ST_FRAME_READ; // 繼續讀下一顆 Byte
+                        state <= ST_FRAME_DATA;
                     end
                 end
 
                 ST_FRAME_WAIT: begin
-                    busy <= 1'b0; // 告訴 CPU 現在可以寫入
+                    busy <= 1'b0;
                     cs <= 1'b1;
-                    if (wait_cnt < 24'd100000) wait_cnt <= wait_cnt + 1'b1;
+                    if (wait_cnt < 24'd1000) wait_cnt <= wait_cnt + 1'b1;
                     else begin
                         busy <= 1'b1;
                         cmd_idx <= 0;
@@ -150,19 +135,18 @@ module Display_Engine_FB128 (
                     end
                 end
 
-                // SPI 傳輸子程序 (TX_SETUP -> HIGH -> LOW)
                 ST_TX_SETUP: begin
                     cs <= 1'b0; dc <= tx_dc; mosi <= tx_byte[7];
-                    tx_bit <= 3'd7; div_cnt <= 0; state <= ST_TX_HIGH;
+                    tx_bit <= 3'd7; div_cnt <= 8'd0; state <= ST_TX_HIGH;
                 end
                 ST_TX_HIGH: begin
                     if (div_cnt == SCLK_DIV - 1) begin
-                        sclk <= 1'b1; div_cnt <= 0; state <= ST_TX_LOW;
+                        sclk <= 1'b1; div_cnt <= 8'd0; state <= ST_TX_LOW;
                     end else div_cnt <= div_cnt + 1'b1;
                 end
                 ST_TX_LOW: begin
                     if (div_cnt == SCLK_DIV - 1) begin
-                        sclk <= 1'b0; div_cnt <= 0;
+                        sclk <= 1'b0; div_cnt <= 8'd0;
                         if (tx_bit == 0) state <= next_state;
                         else begin
                             tx_bit <= tx_bit - 1'b1;
