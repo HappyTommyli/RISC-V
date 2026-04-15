@@ -44,4 +44,5 @@ This folder contains a hardware-oriented port of Lode Runner style gameplay:
 6. Synthesize, implement, generate bitstream, and program Basys3.
 
 ## Note about map/gameplay
-- The gameplay/map logic in `LodeRunner_CPU.asm` is an RV32I implementation inspired by the upstream lode_runner style (platform, ladders, rope, coins, enemy, collision, respawn), adapted for framebuffer rendering at 128x64 horizontal mode.
+- The gameplay/map logic in `LodeRunner_CPU.asm` is an RV32I implementation inspired by the upstream lode_runner style (platform, ladders, rope, coins, enemy, collision, respawn), adapted for full-screen framebuffer rendering at 128x64 horizontal mode.
+- The current map uses the full 128-pixel width (not a 32x32 or right-panel-split layout) and is executed entirely by `CPU/pipeline.v`.
