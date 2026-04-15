@@ -8,7 +8,8 @@ module Display_Engine_FB128 (
     output reg        sclk,
     output reg        mosi,
     output reg        dc,
-    output reg        cs
+    output reg        cs,
+    output reg        res
 );
     localparam integer SCLK_DIV = 25;
     localparam [4:0] INIT_LAST = 5'd24;
@@ -74,6 +75,7 @@ module Display_Engine_FB128 (
             mosi <= 1'b0;
             dc <= 1'b0;
             cs <= 1'b1;
+            res <= 1'b0;
             for (i = 0; i < 1024; i = i + 1) begin
                 fb[i] <= 8'h00;
             end
@@ -85,6 +87,12 @@ module Display_Engine_FB128 (
             case (state)
                 ST_BOOT: begin
                     busy <= 1'b1;
+                    // Keep OLED in reset for a while, then release before init commands.
+                    if (wait_cnt < 24'd100000) begin
+                        res <= 1'b0;
+                    end else begin
+                        res <= 1'b1;
+                    end
                     if (wait_cnt < 24'd1000000) begin
                         wait_cnt <= wait_cnt + 1'b1;
                     end else begin

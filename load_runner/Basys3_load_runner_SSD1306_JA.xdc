@@ -15,8 +15,9 @@ set_property -dict { PACKAGE_PIN E19 IOSTANDARD LVCMOS33 } [get_ports {leds[1]}]
 set_property -dict { PACKAGE_PIN U19 IOSTANDARD LVCMOS33 } [get_ports {leds[2]}]
 set_property -dict { PACKAGE_PIN V19 IOSTANDARD LVCMOS33 } [get_ports {leds[3]}]
 
-## PMOD JA: SCLK, MOSI, DC, CS
+## PMOD JA (SSD1306 7-pin): SCLK, MOSI, DC, CS, RES
 set_property -dict { PACKAGE_PIN J1 IOSTANDARD LVCMOS33 } [get_ports screen_sclk]
 set_property -dict { PACKAGE_PIN L2 IOSTANDARD LVCMOS33 } [get_ports screen_mosi]
 set_property -dict { PACKAGE_PIN J2 IOSTANDARD LVCMOS33 } [get_ports screen_dc]
 set_property -dict { PACKAGE_PIN G2 IOSTANDARD LVCMOS33 } [get_ports screen_cs]
+set_property -dict { PACKAGE_PIN H1 IOSTANDARD LVCMOS33 } [get_ports screen_res]

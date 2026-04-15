@@ -6,7 +6,8 @@ module load_runner_top (
     output wire       screen_sclk,
     output wire       screen_mosi,
     output wire       screen_dc,
-    output wire       screen_cs
+    output wire       screen_cs,
+    output wire       screen_res
 );
     reg [31:0] timer_value;
     always @(posedge clk) begin
@@ -45,7 +46,8 @@ module load_runner_top (
         .sclk(screen_sclk),
         .mosi(screen_mosi),
         .dc(screen_dc),
-        .cs(screen_cs)
+        .cs(screen_cs),
+        .res(screen_res)
     );
 
     assign leds = {display_busy, buttons[2:0]};
