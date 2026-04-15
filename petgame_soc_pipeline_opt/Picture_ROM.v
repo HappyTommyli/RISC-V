@@ -5,11 +5,11 @@ module Picture_ROM (
 );
     // 定義 ROM 空間
     reg [7:0] rom [0:383]; 
+    integer i;
 
     // 這裡放入 initial 區塊
     initial begin
         // 先將所有空間清零，防止出現未知態 (X)
-        integer i;
         for (i = 0; i < 384; i = i + 1) begin
             rom[i] = 8'h00;
         end

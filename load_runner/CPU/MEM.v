@@ -27,7 +27,7 @@ module MEM(
     output        display_we,
     output [31:0] display_cmd,
     output        oled_fb_we,
-    output [6:0]  oled_fb_addr,
+    output [9:0]  oled_fb_addr,
     output [7:0]  oled_fb_data
 );
 wire [31:0] data_mem_data;

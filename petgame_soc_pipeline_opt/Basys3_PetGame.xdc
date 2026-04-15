@@ -6,10 +6,11 @@ create_clock -add -name sys_clk_pin -period 10.00 -waveform {0 5} [get_ports clk
 ## Reset button (BTNC)
 set_property -dict { PACKAGE_PIN U18 IOSTANDARD LVCMOS33 } [get_ports reset]
 
-## Buttons (BTNU/BTNL/BTNR) -> buttons[0]/[1]/[2]
+## Buttons: [0]=UP [1]=DOWN [2]=LEFT [3]=RIGHT
 set_property -dict { PACKAGE_PIN T18 IOSTANDARD LVCMOS33 } [get_ports {buttons[0]}]  ;# BTNU
-set_property -dict { PACKAGE_PIN W19 IOSTANDARD LVCMOS33 } [get_ports {buttons[1]}]  ;# BTNL
-set_property -dict { PACKAGE_PIN T17 IOSTANDARD LVCMOS33 } [get_ports {buttons[2]}]  ;# BTNR
+set_property -dict { PACKAGE_PIN U17 IOSTANDARD LVCMOS33 } [get_ports {buttons[1]}]  ;# BTND
+set_property -dict { PACKAGE_PIN W19 IOSTANDARD LVCMOS33 } [get_ports {buttons[2]}]  ;# BTNL
+set_property -dict { PACKAGE_PIN T17 IOSTANDARD LVCMOS33 } [get_ports {buttons[3]}]  ;# BTNR
 
 ## LEDs [3:0]
 set_property -dict { PACKAGE_PIN U16 IOSTANDARD LVCMOS33 } [get_ports {leds[0]}]

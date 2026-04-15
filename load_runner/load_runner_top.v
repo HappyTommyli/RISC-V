@@ -1,4 +1,4 @@
-module PetGame_SoC (
+module load_runner_top (
     input  wire       clk,
     input  wire       reset,
     input  wire [3:0] buttons,
@@ -8,7 +8,6 @@ module PetGame_SoC (
     output wire       screen_dc,
     output wire       screen_cs
 );
-
     reg [31:0] timer_value;
     always @(posedge clk) begin
         if (reset) timer_value <= 32'b0;
@@ -19,10 +18,11 @@ module PetGame_SoC (
     wire [31:0] display_cmd;
     wire display_busy;
     wire oled_fb_we;
-    wire [6:0] oled_fb_addr;
+    wire [9:0] oled_fb_addr;
     wire [7:0] oled_fb_data;
 
-    pipeline cpu_inst (
+    // Game core runs on pipeline CPU
+    pipeline cpu_core (
         .clk(clk),
         .rst(reset),
         .buttons(buttons),
@@ -35,9 +35,7 @@ module PetGame_SoC (
         .oled_fb_data(oled_fb_data)
     );
 
-    // display_we/display_cmd kept for compatibility with old MMIO,
-    // current game rendering uses framebuffer writes to 0xA000..0xA07F.
-    Display_Engine_FB32 gfx_engine (
+    Display_Engine_FB128 oled_engine (
         .clk(clk),
         .reset(reset),
         .fb_we(oled_fb_we),
@@ -51,5 +49,4 @@ module PetGame_SoC (
     );
 
     assign leds = {display_busy, buttons[2:0]};
-
 endmodule
