@@ -13,7 +13,7 @@ module Data_Memory (
     output reg display_we,
     output reg [31:0] display_cmd,
     output reg oled_fb_we,
-    output reg [6:0] oled_fb_addr,
+    output reg [9:0] oled_fb_addr,
     output reg [7:0] oled_fb_data
 );
     wire [2:0] funct3 = instruction[14:12];
@@ -32,7 +32,7 @@ module Data_Memory (
     wire is_btn          = (alu_result == 32'h00008000);
     wire is_timer        = (alu_result == 32'h00008004);
     wire is_display      = (alu_result == 32'h00009000);
-    wire is_oled_fb      = (alu_result >= 32'h0000A000) && (alu_result < 32'h0000A080);
+    wire is_oled_fb      = (alu_result >= 32'h0000A000) && (alu_result < 32'h0000A400);
 
     // Synchronous read/write
     always @(posedge clk) begin
@@ -125,7 +125,7 @@ module Data_Memory (
         display_we  = mem_write && is_display;
         display_cmd = rs2_data;
         oled_fb_we   = mem_write && is_oled_fb && (funct3 == 3'b000);
-        oled_fb_addr = alu_result[6:0];
+        oled_fb_addr = alu_result[9:0];
         oled_fb_data = rs2_data[7:0];
     end
 endmodule
