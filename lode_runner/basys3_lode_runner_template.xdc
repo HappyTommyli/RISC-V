@@ -38,3 +38,12 @@ set_property PACKAGE_PIN N3  [get_ports {led[13]}]
 set_property PACKAGE_PIN P1  [get_ports {led[14]}]
 set_property PACKAGE_PIN L1  [get_ports {led[15]}]
 set_property IOSTANDARD LVCMOS33 [get_ports {led[*]}]
+
+# 啟用 Bitstream 壓縮
+set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
+
+# 設置 SPI Flash 加載頻率為 33MHz (加快開機速度)
+set_property BITSTREAM.CONFIG.CONFIGRATE 33 [current_design]
+
+# 設置 SPI 模式為 4 線模式 (Basys 3 支援 QSPI x4 加速)
+set_property BITSTREAM.CONFIG.SPI_BUSWIDTH 4 [current_design]
