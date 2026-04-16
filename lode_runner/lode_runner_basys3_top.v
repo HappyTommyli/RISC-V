@@ -48,9 +48,8 @@ module lode_runner_basys3_top (
         .dbg_leds    (dbg_leds)
     );
 
-    // led[3:0]: direct hardware button mirror
-    // led[7:4]: CPU-side debug nibble (movement flags from dbg_leds[7:4])
-    assign led = {8'b0, dbg_leds[7:4], buttons};
+    // LED count is controlled by CPU debug register (coin lamps etc.)
+    assign led = dbg_leds;
 
     Display_Engine u_display (
         .clk          (clk100),

@@ -16,30 +16,13 @@ start:
     addi a0, zero, 0      # world page: 0=left map, 1=right map
     addi a2, zero, 0      # center gold animation timer
 
-    # clear 3 spike piles in map seed so they are not treated as walls
-    # pile0: page3 x32..35  (0x1000 + 416..419)
-    sb zero, 416(s3)
-    sb zero, 417(s3)
-    sb zero, 418(s3)
-    sb zero, 419(s3)
-    # pile1: page6 x65..68  (0x1000 + 833..836)
-    sb zero, 833(s3)
-    sb zero, 834(s3)
-    sb zero, 835(s3)
-    sb zero, 836(s3)
-    # pile2: page3 x102..105 (0x1000 + 486..489)
-    sb zero, 486(s3)
-    sb zero, 487(s3)
-    sb zero, 488(s3)
-    sb zero, 489(s3)
-
 main_loop:
     addi s8, s8, 1
     lw t1, 0(s0)          # buttons
     addi t2, zero, 0      # move flags
 
-    # update every 64 loops (slow enough to observe)
-    andi t3, s8, 63
+    # update every 32 loops (smoother response)
+    andi t3, s8, 31
     bne t3, zero, dbg_and_render
 
     # candidate positions
@@ -77,10 +60,23 @@ ladder_here_2:
 ladder_here_3:
     # ladder3: x [96,102), page [1,7)
     addi t3, zero, 96
-    blt s5, t3, ladder_here_r
+    blt s5, t3, ladder_here_4
     addi t4, zero, 102
-    bge s5, t4, ladder_here_r
+    bge s5, t4, ladder_here_4
     addi t5, zero, 1
+    blt s6, t5, ladder_here_4
+    addi t5, zero, 7
+    bge s6, t5, ladder_here_4
+    addi s11, zero, 1
+    jal zero, ladder_here_done
+
+ladder_here_4:
+    # ladder4: x [64,66), page [5,7)
+    addi t3, zero, 64
+    blt s5, t3, ladder_here_r
+    addi t4, zero, 66
+    bge s5, t4, ladder_here_r
+    addi t5, zero, 5
     blt s6, t5, ladder_here_r
     addi t5, zero, 7
     bge s6, t5, ladder_here_r
@@ -133,10 +129,23 @@ ladder_below_2:
 ladder_below_3:
     # below on ladder3?
     addi t3, zero, 96
-    blt s5, t3, ladder_below_r
+    blt s5, t3, ladder_below_4
     addi t4, zero, 102
-    bge s5, t4, ladder_below_r
+    bge s5, t4, ladder_below_4
     addi t5, zero, 1
+    blt t6, t5, ladder_below_4
+    addi t5, zero, 7
+    bge t6, t5, ladder_below_4
+    addi t0, zero, 1
+    jal zero, ladder_below_done
+
+ladder_below_4:
+    # below on ladder4?
+    addi t3, zero, 64
+    blt s5, t3, ladder_below_r
+    addi t4, zero, 66
+    bge s5, t4, ladder_below_r
+    addi t5, zero, 5
     blt t6, t5, ladder_below_r
     addi t5, zero, 7
     bge t6, t5, ladder_below_r
@@ -208,6 +217,8 @@ left_try_move:
     beq t3, t6, left_col1
     addi t6, zero, 16
     beq t3, t6, left_col1
+    addi t6, zero, 2
+    beq t3, t6, left_col1
     jal zero, do_right
 
 left_col1:
@@ -222,6 +233,8 @@ left_col1:
     addi t6, zero, 1
     beq t3, t6, left_col2
     addi t6, zero, 16
+    beq t3, t6, left_col2
+    addi t6, zero, 2
     beq t3, t6, left_col2
     jal zero, do_right
 
@@ -238,6 +251,8 @@ left_col2:
     beq t3, t6, left_col3
     addi t6, zero, 16
     beq t3, t6, left_col3
+    addi t6, zero, 2
+    beq t3, t6, left_col3
     jal zero, do_right
 
 left_col3:
@@ -252,6 +267,8 @@ left_col3:
     addi t6, zero, 1
     beq t3, t6, left_apply
     addi t6, zero, 16
+    beq t3, t6, left_apply
+    addi t6, zero, 2
     beq t3, t6, left_apply
     jal zero, do_right
 
@@ -290,6 +307,8 @@ right_try_move:
     beq t3, t6, right_col1
     addi t6, zero, 16
     beq t3, t6, right_col1
+    addi t6, zero, 2
+    beq t3, t6, right_col1
     jal zero, do_gravity
 
 right_col1:
@@ -304,6 +323,8 @@ right_col1:
     addi t6, zero, 1
     beq t3, t6, right_col2
     addi t6, zero, 16
+    beq t3, t6, right_col2
+    addi t6, zero, 2
     beq t3, t6, right_col2
     jal zero, do_gravity
 
@@ -320,6 +341,8 @@ right_col2:
     beq t3, t6, right_col3
     addi t6, zero, 16
     beq t3, t6, right_col3
+    addi t6, zero, 2
+    beq t3, t6, right_col3
     jal zero, do_gravity
 
 right_col3:
@@ -334,6 +357,8 @@ right_col3:
     addi t6, zero, 1
     beq t3, t6, right_apply
     addi t6, zero, 16
+    beq t3, t6, right_apply
+    addi t6, zero, 2
     beq t3, t6, right_apply
     jal zero, do_gravity
 
@@ -372,6 +397,8 @@ gravity_normal:
     beq t3, t6, support_col1
     addi t6, zero, 16
     beq t3, t6, support_col1
+    addi t6, zero, 2
+    beq t3, t6, support_col1
     jal zero, support_yes
 
 support_col1:
@@ -386,6 +413,8 @@ support_col1:
     addi t6, zero, 1
     beq t3, t6, support_col2
     addi t6, zero, 16
+    beq t3, t6, support_col2
+    addi t6, zero, 2
     beq t3, t6, support_col2
     jal zero, support_yes
 
@@ -402,6 +431,8 @@ support_col2:
     beq t3, t6, support_col3
     addi t6, zero, 16
     beq t3, t6, support_col3
+    addi t6, zero, 2
+    beq t3, t6, support_col3
     jal zero, support_yes
 
 support_col3:
@@ -416,6 +447,8 @@ support_col3:
     addi t6, zero, 1
     beq t3, t6, support_no
     addi t6, zero, 16
+    beq t3, t6, support_no
+    addi t6, zero, 2
     beq t3, t6, support_no
     jal zero, support_yes
 
@@ -435,48 +468,41 @@ commit_pos:
     # keep previous coin state in t0 for "new pickup" detection
     addi t0, s7, 0
 
-    # coin0 at original left spike pile: center (33,3), bit0
-    addi t3, zero, 3
+    # coin0 reachable: center (24,4), bit0
+    addi t3, zero, 4
     bne s6, t3, coin1_chk
-    addi t4, zero, 31
+    addi t4, zero, 22
     blt s5, t4, coin1_chk
-    addi t4, zero, 36
+    addi t4, zero, 27
     bge s5, t4, coin1_chk
     ori s7, s7, 1
 
 coin1_chk:
-    # coin1 at original middle spike pile: center (66,6), bit1
-    addi t3, zero, 6
+    # coin1 reachable: center (54,4), bit1
+    addi t3, zero, 4
     bne s6, t3, coin2_chk
-    addi t4, zero, 64
+    addi t4, zero, 52
     blt s5, t4, coin2_chk
-    addi t4, zero, 69
+    addi t4, zero, 57
     bge s5, t4, coin2_chk
     ori s7, s7, 2
 
 coin2_chk:
-    # coin2 at original right spike pile: center (103,3), bit2
-    addi t3, zero, 3
+    # coin2 reachable: center (98,5), bit2
+    addi t3, zero, 5
     bne s6, t3, coin_anim_chk
-    addi t4, zero, 101
+    addi t4, zero, 96
     blt s5, t4, coin_anim_chk
-    addi t4, zero, 106
+    addi t4, zero, 101
     bge s5, t4, coin_anim_chk
     ori s7, s7, 4
 
 coin_anim_chk:
     beq s7, t0, dbg_and_render
-    addi a2, zero, 24      # show center "gold coin" for a short time
+    addi a2, zero, 180     # show center "GOLD COIN" for about 3 seconds
 
-# dbg_leds[3:0]=buttons, [7:4]=move flags, [11:8]=x low nibble, [15:12]=coin count(0..3)
+# dbg_leds coin lamps: pick N coins => low N LEDs on
 dbg_and_render:
-    andi t6, t1, 15
-    slli t4, t2, 4
-    or t6, t6, t4
-    andi t5, s5, 15
-    slli t5, t5, 8
-    or t6, t6, t5
-
     # popcount3(s7) -> t3
     addi t3, zero, 0
     andi t4, s7, 1
@@ -491,9 +517,21 @@ cnt_b2:
     beq t4, zero, cnt_done
     addi t3, t3, 1
 cnt_done:
-    addi a1, t3, 0         # save for HUD
-    slli t3, t3, 12
-    or t6, t6, t3
+    # LED lamps: 0->0b000, 1->0b001, 2->0b011, 3->0b111
+    addi t6, zero, 0
+    beq t3, zero, led_done
+    addi t4, zero, 1
+    beq t3, t4, led_1
+    addi t4, zero, 2
+    beq t3, t4, led_2
+    addi t6, zero, 7
+    jal zero, led_done
+led_1:
+    addi t6, zero, 1
+    jal zero, led_done
+led_2:
+    addi t6, zero, 3
+led_done:
     sw t6, 0(s4)
 
     # copy map seed to framebuffer
@@ -507,44 +545,31 @@ copy_loop:
     addi t3, zero, 1024
     blt t0, t3, copy_loop
 
-    # HUD at top-left: coin icon + 3 progress pips
-    addi t0, zero, 0
-    add t0, t0, s2
-    addi t4, zero, 60
-    sb t4, 0(t0)
-    addi t4, zero, 126
-    sb t4, 1(t0)
-    addi t4, zero, 60
-    sb t4, 2(t0)
-
-    addi t4, zero, 0
-    sb t4, 4(t0)
-    sb t4, 5(t0)
-    sb t4, 6(t0)
-    addi t5, zero, 0
-    blt t5, a1, hud1
-    jal zero, draw_coins
-hud1:
-    addi t4, zero, 24
-    sb t4, 4(t0)
-    addi t5, zero, 1
-    blt t5, a1, hud2
-    jal zero, draw_coins
-hud2:
-    sb t4, 5(t0)
-    addi t5, zero, 2
-    blt t5, a1, hud3
-    jal zero, draw_coins
-hud3:
-    sb t4, 6(t0)
+    # right-map sky pole visual (visible + climbable)
+    beq a0, zero, draw_coins
+    addi t4, zero, 17
+    addi t5, zero, 112
+    add t5, t5, s2
+    sb t4, 128(t5)
+    sb t4, 129(t5)
+    sb t4, 256(t5)
+    sb t4, 257(t5)
+    sb t4, 384(t5)
+    sb t4, 385(t5)
+    sb t4, 512(t5)
+    sb t4, 513(t5)
+    sb t4, 640(t5)
+    sb t4, 641(t5)
+    sb t4, 768(t5)
+    sb t4, 769(t5)
 
 draw_coins:
     # draw 3 larger coins (3x8) if not collected
     andi t3, s7, 1
     bne t3, zero, coin_draw_1
-    addi t0, zero, 3
+    addi t0, zero, 4
     slli t0, t0, 7
-    addi t4, zero, 32
+    addi t4, zero, 23
     add t0, t0, t4
     add t0, t0, s2
     addi t4, zero, 60
@@ -557,9 +582,9 @@ draw_coins:
 coin_draw_1:
     andi t3, s7, 2
     bne t3, zero, coin_draw_2
-    addi t0, zero, 6
+    addi t0, zero, 4
     slli t0, t0, 7
-    addi t4, zero, 65
+    addi t4, zero, 53
     add t0, t0, t4
     add t0, t0, s2
     addi t4, zero, 60
@@ -572,9 +597,9 @@ coin_draw_1:
 coin_draw_2:
     andi t3, s7, 4
     bne t3, zero, center_anim
-    addi t0, zero, 3
+    addi t0, zero, 5
     slli t0, t0, 7
-    addi t4, zero, 102
+    addi t4, zero, 97
     add t0, t0, t4
     add t0, t0, s2
     addi t4, zero, 60
@@ -585,24 +610,189 @@ coin_draw_2:
     sb t4, 2(t0)
 
 center_anim:
-    # original-like short center flash after pickup
+    # if all 3 coins collected -> only show WIN panel (no GOLD COIN)
+    addi t3, zero, 7
+    beq s7, t3, win_panel
+
+    # GOLD COIN center overlay on top layer
     beq a2, zero, draw_player
+    andi t3, s8, 15
+    bne t3, zero, gold_panel
     addi a2, a2, -1
-    addi t0, zero, 3
-    slli t0, t0, 7
-    addi t4, zero, 62
-    add t0, t0, t4
+
+gold_panel:
+    # draw white border + black panel body on page3, x [24..103]
+    addi t0, zero, 24
+gold_panel_loop:
+    add t5, s2, t0
+    addi t4, zero, 24
+    beq t0, t4, gold_panel_edge
+    addi t4, zero, 103
+    beq t0, t4, gold_panel_edge
+    addi t4, zero, 129
+    sb t4, 384(t5)
+    jal zero, gold_panel_next
+gold_panel_edge:
+    addi t4, zero, 255
+    sb t4, 384(t5)
+gold_panel_next:
+    addi t0, t0, 1
+    addi t3, zero, 104
+    blt t0, t3, gold_panel_loop
+
+    # draw text "GOLD COIN" (5x7 font columns) at page3
+    addi t0, zero, 37
     add t0, t0, s2
-    addi t4, zero, 24
+    addi t0, t0, 384
+
+    # G
+    addi t4, zero, 62
     sb t4, 0(t0)
-    addi t4, zero, 60
+    addi t4, zero, 65
     sb t4, 1(t0)
-    addi t4, zero, 126
+    addi t4, zero, 73
     sb t4, 2(t0)
-    addi t4, zero, 60
+    addi t4, zero, 77
     sb t4, 3(t0)
-    addi t4, zero, 24
+    addi t4, zero, 46
     sb t4, 4(t0)
+    # O
+    addi t4, zero, 62
+    sb t4, 6(t0)
+    addi t4, zero, 65
+    sb t4, 7(t0)
+    addi t4, zero, 65
+    sb t4, 8(t0)
+    addi t4, zero, 65
+    sb t4, 9(t0)
+    addi t4, zero, 62
+    sb t4, 10(t0)
+    # L
+    addi t4, zero, 127
+    sb t4, 12(t0)
+    addi t4, zero, 1
+    sb t4, 13(t0)
+    addi t4, zero, 1
+    sb t4, 14(t0)
+    addi t4, zero, 1
+    sb t4, 15(t0)
+    addi t4, zero, 1
+    sb t4, 16(t0)
+    # D
+    addi t4, zero, 127
+    sb t4, 18(t0)
+    addi t4, zero, 65
+    sb t4, 19(t0)
+    addi t4, zero, 65
+    sb t4, 20(t0)
+    addi t4, zero, 34
+    sb t4, 21(t0)
+    addi t4, zero, 28
+    sb t4, 22(t0)
+    # C
+    addi t4, zero, 62
+    sb t4, 30(t0)
+    addi t4, zero, 65
+    sb t4, 31(t0)
+    addi t4, zero, 65
+    sb t4, 32(t0)
+    addi t4, zero, 65
+    sb t4, 33(t0)
+    addi t4, zero, 34
+    sb t4, 34(t0)
+    # O
+    addi t4, zero, 62
+    sb t4, 36(t0)
+    addi t4, zero, 65
+    sb t4, 37(t0)
+    addi t4, zero, 65
+    sb t4, 38(t0)
+    addi t4, zero, 65
+    sb t4, 39(t0)
+    addi t4, zero, 62
+    sb t4, 40(t0)
+    # I
+    addi t4, zero, 65
+    sb t4, 42(t0)
+    addi t4, zero, 65
+    sb t4, 43(t0)
+    addi t4, zero, 127
+    sb t4, 44(t0)
+    addi t4, zero, 65
+    sb t4, 45(t0)
+    addi t4, zero, 65
+    sb t4, 46(t0)
+    # N
+    addi t4, zero, 127
+    sb t4, 48(t0)
+    addi t4, zero, 32
+    sb t4, 49(t0)
+    addi t4, zero, 16
+    sb t4, 50(t0)
+    addi t4, zero, 8
+    sb t4, 51(t0)
+    addi t4, zero, 127
+    sb t4, 52(t0)
+
+    jal zero, draw_player
+
+win_panel:
+    # draw same style panel and "WIN" text on top layer
+    addi t0, zero, 24
+win_panel_loop:
+    add t5, s2, t0
+    addi t4, zero, 24
+    beq t0, t4, win_panel_edge
+    addi t4, zero, 103
+    beq t0, t4, win_panel_edge
+    addi t4, zero, 129
+    sb t4, 384(t5)
+    jal zero, win_panel_next
+win_panel_edge:
+    addi t4, zero, 255
+    sb t4, 384(t5)
+win_panel_next:
+    addi t0, t0, 1
+    addi t3, zero, 104
+    blt t0, t3, win_panel_loop
+
+    # "WIN" centered in panel
+    addi t0, zero, 55
+    add t0, t0, s2
+    addi t0, t0, 384
+    # W
+    addi t4, zero, 127
+    sb t4, 0(t0)
+    addi t4, zero, 2
+    sb t4, 1(t0)
+    addi t4, zero, 12
+    sb t4, 2(t0)
+    addi t4, zero, 2
+    sb t4, 3(t0)
+    addi t4, zero, 127
+    sb t4, 4(t0)
+    # I
+    addi t4, zero, 65
+    sb t4, 6(t0)
+    addi t4, zero, 65
+    sb t4, 7(t0)
+    addi t4, zero, 127
+    sb t4, 8(t0)
+    addi t4, zero, 65
+    sb t4, 9(t0)
+    addi t4, zero, 65
+    sb t4, 10(t0)
+    # N
+    addi t4, zero, 127
+    sb t4, 12(t0)
+    addi t4, zero, 32
+    sb t4, 13(t0)
+    addi t4, zero, 16
+    sb t4, 14(t0)
+    addi t4, zero, 8
+    sb t4, 15(t0)
+    addi t4, zero, 127
+    sb t4, 16(t0)
 
 draw_player:
     # draw player sprite 4x8
@@ -639,3 +829,4 @@ win_check:
 render_commit:
     sw zero, 0(s1)
     jal zero, main_loop
+
