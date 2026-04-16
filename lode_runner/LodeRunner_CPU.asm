@@ -21,8 +21,8 @@ main_loop:
 
     addi t2, zero, 0      # move flags
 
-    # update every 16 loops
-    andi t0, s8, 15
+    # update every 64 loops (slower movement for visibility)
+    andi t0, s8, 63
     bne t0, zero, dbg_and_render
 
     # candidate positions
@@ -93,6 +93,20 @@ do_left:
     beq t3, zero, do_right
     beq s9, zero, do_right
 
+    # collision check at target left edge (nx - 1), using map seed byte
+    # block only on "solid wall" glyph bytes to avoid accidental air walls
+    addi t4, s9, -1
+    slli t5, s10, 7
+    add t5, t5, t4
+    add t5, t5, s3
+    lbu t6, 0(t5)
+    addi t5, zero, 63      # 0x3F
+    beq t6, t5, do_right
+    addi t5, zero, 127     # 0x7F
+    beq t6, t5, do_right
+    addi t5, zero, 55      # 0x37
+    beq t6, t5, do_right
+
 left_apply:
     addi s9, s9, -1
     addi t4, zero, 1
@@ -103,6 +117,19 @@ do_right:
     beq t3, zero, commit_pos
     addi t4, zero, 124
     bge s9, t4, commit_pos
+
+    # collision check at target right edge (nx + 4)
+    addi t4, s9, 4
+    slli t5, s10, 7
+    add t5, t5, t4
+    add t5, t5, s3
+    lbu t6, 0(t5)
+    addi t5, zero, 63      # 0x3F
+    beq t6, t5, commit_pos
+    addi t5, zero, 127     # 0x7F
+    beq t6, t5, commit_pos
+    addi t5, zero, 55      # 0x37
+    beq t6, t5, commit_pos
 
 right_apply:
     addi s9, s9, 1
