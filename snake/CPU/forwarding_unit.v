@@ -3,6 +3,7 @@
 // 2'b00 = ID/EX value
 // 2'b10 = EX/MEM value
 // 2'b01 = MEM/WB value
+ (* keep_hierarchy = "yes" *)
 module forwarding_unit (
     input  wire        ex_mem_regwrite,
     input  wire [4:0]  ex_mem_rd,

@@ -1,3 +1,4 @@
+ (* keep_hierarchy = "yes" *)
 module WB (
     input  [31:0] mem_data,     // Data from memory (if load)
     input  [31:0] alu_result,   // ALU output (if arithmetic)

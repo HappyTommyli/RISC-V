@@ -1,15 +1,15 @@
 ## Clock signal (100MHz)
-set_property PACKAGE_PIN W5 [get_ports clk_100mhz]							
-set_property IOSTANDARD LVCMOS33 [get_ports clk_100mhz]
-create_clock -add -name sys_clk_pin -period 20.00 -waveform {0 5} [get_ports clk_100mhz]
+set_property PACKAGE_PIN W5 [get_ports clk]							
+set_property IOSTANDARD LVCMOS33 [get_ports clk]
+create_clock -add -name sys_clk_pin -period 20.00 -waveform {0 5} [get_ports clk]
  
 ## Switches
 # sw0: 開始遊戲 (V17)
 set_property PACKAGE_PIN V17 [get_ports sw0]					
 set_property IOSTANDARD LVCMOS33 [get_ports sw0]
 # rst_n: 硬體重置 (V16) - 建議往上撥為工作，往下撥為重置
-set_property PACKAGE_PIN V16 [get_ports rst_n]					
-set_property IOSTANDARD LVCMOS33 [get_ports rst_n]
+set_property PACKAGE_PIN V16 [get_ports rst]					
+set_property IOSTANDARD LVCMOS33 [get_ports rst]
 
 ## Buttons (方向鍵，對應組合語言中的 bit 0~3)
 # btns[0] -> Up (T18)

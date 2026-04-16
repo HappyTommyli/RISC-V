@@ -1,3 +1,4 @@
+ (* keep_hierarchy = "yes" *)
 module CU ( 
     input wire [31:0] instruction, 
     output reg reg_write, 

@@ -1,5 +1,6 @@
 // Hazard Detection Unit (load-use)
 // If ID/EX is a load, and IF/ID uses its destination, stall 1 cycle.
+ (* keep_hierarchy = "yes" *)
 module hazard_unit (
     input  wire       id_ex_memread,
     input  wire [4:0] id_ex_rd,

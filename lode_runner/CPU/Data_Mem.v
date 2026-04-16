@@ -13,7 +13,7 @@ module Data_Memory (
     output reg display_we,
     output reg [31:0] display_cmd,
     output reg oled_fb_we,
-    output reg [9:0] oled_fb_addr,
+    output reg [6:0] oled_fb_addr,
     output reg [7:0] oled_fb_data
 );
     wire [2:0] funct3 = instruction[14:12];
@@ -32,7 +32,7 @@ module Data_Memory (
     wire is_btn          = (alu_result == 32'h00008000);
     wire is_timer        = (alu_result == 32'h00008004);
     wire is_display      = (alu_result == 32'h00009000);
-    wire is_oled_fb      = (alu_result >= 32'h0000A000) && (alu_result < 32'h0000A400);
+    wire is_oled_fb      = (alu_result >= 32'h0000A000) && (alu_result < 32'h0000A080);
 
     // Synchronous read/write
     always @(posedge clk) begin
@@ -44,16 +44,16 @@ module Data_Memory (
             case (funct3)
                 3'b000: begin // SB
                     case (byte_off)
-                        2'b00: mem[alu_result[31:2]] <= {word_q[31:8],  rs2_data[7:0]};
-                        2'b01: mem[alu_result[31:2]] <= {word_q[31:16], rs2_data[7:0], word_q[7:0]};
-                        2'b10: mem[alu_result[31:2]] <= {word_q[31:24], rs2_data[7:0], word_q[15:0]};
-                        2'b11: mem[alu_result[31:2]] <= {rs2_data[7:0], word_q[23:0]};
+                        2'b00: mem[alu_result[31:2]] <= {mem[alu_result[31:2]][31:8],  rs2_data[7:0]};
+                        2'b01: mem[alu_result[31:2]] <= {mem[alu_result[31:2]][31:16], rs2_data[7:0], mem[alu_result[31:2]][7:0]};
+                        2'b10: mem[alu_result[31:2]] <= {mem[alu_result[31:2]][31:24], rs2_data[7:0], mem[alu_result[31:2]][15:0]};
+                        2'b11: mem[alu_result[31:2]] <= {rs2_data[7:0], mem[alu_result[31:2]][23:0]};
                     endcase
                 end
                 3'b001: begin // SH
                     case (byte_off[1])
-                        1'b0: mem[alu_result[31:2]] <= {word_q[31:16], rs2_data[15:0]};
-                        1'b1: mem[alu_result[31:2]] <= {rs2_data[15:0], word_q[15:0]};
+                        1'b0: mem[alu_result[31:2]] <= {mem[alu_result[31:2]][31:16], rs2_data[15:0]};
+                        1'b1: mem[alu_result[31:2]] <= {rs2_data[15:0], mem[alu_result[31:2]][15:0]};
                     endcase
                 end
                 3'b010: begin // SW
@@ -125,7 +125,7 @@ module Data_Memory (
         display_we  = mem_write && is_display;
         display_cmd = rs2_data;
         oled_fb_we   = mem_write && is_oled_fb && (funct3 == 3'b000);
-        oled_fb_addr = alu_result[9:0];
+        oled_fb_addr = alu_result[6:0];
         oled_fb_data = rs2_data[7:0];
     end
 endmodule

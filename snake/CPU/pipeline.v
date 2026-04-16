@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-
+ (* keep_hierarchy = "yes" *)
 module pipeline (
     input  clk,
     input  rst,

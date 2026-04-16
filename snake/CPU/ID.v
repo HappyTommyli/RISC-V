@@ -1,4 +1,5 @@
 `timescale 1ns / 1ps
+ (* keep_hierarchy = "yes" *)
 module ID(
 input clk,
 input rst,

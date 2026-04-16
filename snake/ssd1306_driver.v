@@ -1,3 +1,4 @@
+ (* keep_hierarchy = "yes" *)
 module ssd1306_driver(
     input clk, rst,
     input [7:0] vram_data,

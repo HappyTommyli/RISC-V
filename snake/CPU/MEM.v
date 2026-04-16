@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-
+ (* keep_hierarchy = "yes" *)
 module MEM(
     input clk,
     input rst,

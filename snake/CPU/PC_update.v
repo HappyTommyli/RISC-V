@@ -1,3 +1,4 @@
+ (* keep_hierarchy = "yes" *)
 module PC_update (
     input [31:0] rs1_data,
     input jump,

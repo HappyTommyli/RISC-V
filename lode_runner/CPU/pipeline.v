@@ -9,7 +9,7 @@ module pipeline (
     output        display_we,
     output [31:0] display_cmd,
     output        oled_fb_we,
-    output [9:0]  oled_fb_addr,
+    output [6:0]  oled_fb_addr,
     output [7:0]  oled_fb_data
 );
     // IF/ID outputs
@@ -108,7 +108,7 @@ module pipeline (
     wire        mem_display_we;
     wire [31:0] mem_display_cmd;
     wire        mem_oled_fb_we;
-    wire [9:0]  mem_oled_fb_addr;
+    wire [6:0]  mem_oled_fb_addr;
     wire [7:0]  mem_oled_fb_data;
 
     // MEM/WB pipeline registers

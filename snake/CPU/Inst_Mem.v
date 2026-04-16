@@ -1,4 +1,4 @@
-// (* keep_hierarchy = "yes" *)
+ (* keep_hierarchy = "yes" *)
 module inst_mem (
     input  wire [31:0] pc_address,
     output reg  [31:0] instruction

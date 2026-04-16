@@ -1,3 +1,4 @@
+ (* keep_hierarchy = "yes" *)
 module IF (
     input clk,
     input rst,

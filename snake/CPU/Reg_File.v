@@ -1,3 +1,4 @@
+ (* keep_hierarchy = "yes" *)
 module Reg_File (
 input wire clk,
 input wire rst,

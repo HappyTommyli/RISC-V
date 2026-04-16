@@ -1,8 +1,8 @@
 `timescale 1ns / 1ps
 
 module top(
-    input clk_100mhz,
-    input rst_n,
+    input clk,
+    input rst,
     input [3:0] btns,   // 開發板上的上下左右按鈕
     input sw0,          // 開發板上的開關 (重置/開始遊戲)
     // SSD1306 OLED 7 針介面
@@ -13,10 +13,9 @@ module top(
     output oled_cs
 );
     // 降頻至 50MHz 以符合你的 57.8MHz 效能限制
-    wire clk;
-    clk_wiz_0 instance_name (.clk_out1(clk), .clk_in1(clk_100mhz));
+//    wire clk;
+//    clk_wiz_0 instance_name (.clk_out1(clk), .clk_in1(clk_100mhz));
 
-    wire rst = !rst_n;
 
     // VRAM 專用接線 (讓 OLED 驅動器去讀 Data_Mem 裡的 VRAM)
     wire [6:0] vram_disp_addr;

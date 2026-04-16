@@ -1,3 +1,4 @@
+ (* keep_hierarchy = "yes" *)
 module ALU(
     input [31:0] rs1_data,
     input [31:0] rs2_data,

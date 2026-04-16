@@ -1,3 +1,4 @@
+ (* keep_hierarchy = "yes" *)
 module EX(
     input clk,
     input rst,
