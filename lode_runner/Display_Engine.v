@@ -7,7 +7,7 @@ module Display_Engine (
     input  wire        all_on_toggle,
     input  wire        redraw_pulse,
     input  wire        oled_fb_we,
-    input  wire [6:0]  oled_fb_addr,
+    input  wire [9:0]  oled_fb_addr,
     input  wire [7:0]  oled_fb_data,
     output reg         busy,
     output reg         sclk,
@@ -39,7 +39,7 @@ module Display_Engine (
     reg [4:0]  state;
     reg [4:0]  next_state;
     reg [4:0]  init_idx;
-    reg [6:0]  data_cnt;
+    reg [9:0]  data_cnt;
     reg [7:0]  tx_byte;
     reg        tx_dc;
     reg [2:0]  tx_bit;
@@ -49,7 +49,7 @@ module Display_Engine (
     reg        all_on_mode;
     reg        redraw_req;
 
-    reg [7:0] framebuf [0:127];
+    reg [7:0] framebuf [0:1023];
     reg [7:0] fb_byte_q;
 
     integer i;
@@ -85,7 +85,7 @@ module Display_Engine (
             dc          <= 1'b0;
             cs          <= 1'b1;
             init_idx    <= 5'd0;
-            data_cnt    <= 7'd0;
+            data_cnt    <= 10'd0;
             tx_byte     <= 8'h00;
             tx_dc       <= 1'b0;
             tx_bit      <= 3'd0;
@@ -95,7 +95,7 @@ module Display_Engine (
             all_on_mode <= 1'b0;
             redraw_req  <= 1'b0;
             fb_byte_q   <= 8'h00;
-            for (i = 0; i < 128; i = i + 1) begin
+            for (i = 0; i < 1024; i = i + 1) begin
                 framebuf[i] <= 8'h00;
             end
         end else begin
@@ -155,7 +155,7 @@ module Display_Engine (
                         state       <= ST_TX_SETUP;
                     end else if (redraw_req) begin
                         redraw_req <= 1'b0;
-                        data_cnt   <= 7'd0;
+                        data_cnt   <= 10'd0;
                         busy       <= 1'b1;
                         state      <= ST_CMD_0;
                     end
@@ -163,10 +163,10 @@ module Display_Engine (
 
                 ST_CMD_0: begin tx_byte <= 8'h21; tx_dc <= 1'b0; next_state <= ST_CMD_1; state <= ST_TX_SETUP; end
                 ST_CMD_1: begin tx_byte <= 8'h00; tx_dc <= 1'b0; next_state <= ST_CMD_2; state <= ST_TX_SETUP; end
-                ST_CMD_2: begin tx_byte <= 8'h1F; tx_dc <= 1'b0; next_state <= ST_CMD_3; state <= ST_TX_SETUP; end
+                ST_CMD_2: begin tx_byte <= 8'h7F; tx_dc <= 1'b0; next_state <= ST_CMD_3; state <= ST_TX_SETUP; end
                 ST_CMD_3: begin tx_byte <= 8'h22; tx_dc <= 1'b0; next_state <= ST_CMD_4; state <= ST_TX_SETUP; end
                 ST_CMD_4: begin tx_byte <= 8'h00; tx_dc <= 1'b0; next_state <= ST_CMD_5; state <= ST_TX_SETUP; end
-                ST_CMD_5: begin tx_byte <= 8'h03; tx_dc <= 1'b0; next_state <= ST_DATA_REQ; state <= ST_TX_SETUP; end
+                ST_CMD_5: begin tx_byte <= 8'h07; tx_dc <= 1'b0; next_state <= ST_DATA_REQ; state <= ST_TX_SETUP; end
 
                 ST_DATA_REQ: begin
                     fb_byte_q <= framebuf[data_cnt];
@@ -181,7 +181,7 @@ module Display_Engine (
                 end
 
                 ST_DATA_NEXT: begin
-                    if (data_cnt == 7'd127) begin
+                    if (data_cnt == 10'd1023) begin
                         state <= ST_IDLE;
                     end else begin
                         data_cnt <= data_cnt + 1'b1;

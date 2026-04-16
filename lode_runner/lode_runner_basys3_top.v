@@ -28,7 +28,7 @@ module lode_runner_basys3_top (
     wire        display_we;
     wire [31:0] display_cmd;
     wire        oled_fb_we;
-    wire [6:0]  oled_fb_addr;
+    wire [9:0]  oled_fb_addr;
     wire [7:0]  oled_fb_data;
     wire        display_busy;
 

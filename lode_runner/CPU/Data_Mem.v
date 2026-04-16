@@ -13,7 +13,7 @@ module Data_Memory (
     output reg display_we,
     output reg [31:0] display_cmd,
     output reg oled_fb_we,
-    output reg [6:0] oled_fb_addr,
+    output reg [9:0] oled_fb_addr,
     output reg [7:0] oled_fb_data
 );
     wire [2:0] funct3 = instruction[14:12];
@@ -23,16 +23,28 @@ module Data_Memory (
 
     // Force block RAM (synchronous read/write)
     (* ram_style = "block" *) reg [31:0] mem [0:WORDS-1];
+    reg [7:0] oled_shadow [0:1023];
 
     reg [31:0] word_q;
     wire [1:0]  byte_off = alu_result[1:0];
+    integer i;
 
     // Address map
     wire is_internal_mem = (alu_result < 32'h00008000);
     wire is_btn          = (alu_result == 32'h00008000);
     wire is_timer        = (alu_result == 32'h00008004);
     wire is_display      = (alu_result == 32'h00009000);
-    wire is_oled_fb      = (alu_result >= 32'h0000A000) && (alu_result < 32'h0000A080);
+    wire is_oled_fb      = (alu_result >= 32'h0000A000) && (alu_result < 32'h0000A400);
+
+    initial begin
+        for (i = 0; i < WORDS; i = i + 1) begin
+            mem[i] = 32'b0;
+        end
+        for (i = 0; i < 1024; i = i + 1) begin
+            oled_shadow[i] = 8'b0;
+        end
+`include "lode_runner_map_128x64_mem_init.vh"
+    end
 
     // Synchronous read/write
     always @(posedge clk) begin
@@ -63,6 +75,10 @@ module Data_Memory (
                     mem[alu_result[31:2]] <= mem[alu_result[31:2]]; // no-op
                 end
             endcase
+        end
+
+        if (mem_write && is_oled_fb && (funct3 == 3'b000)) begin
+            oled_shadow[alu_result[9:0]] <= rs2_data[7:0];
         end
     end
 
@@ -111,7 +127,7 @@ module Data_Memory (
             end else if (is_display) begin
                 data_mem_data = {display_busy, 31'b0};
             end else if (is_oled_fb) begin
-                data_mem_data = 32'b0;
+                data_mem_data = {24'b0, oled_shadow[alu_result[9:0]]};
             end else begin
                 data_mem_data = 32'b0;
             end
@@ -125,7 +141,7 @@ module Data_Memory (
         display_we  = mem_write && is_display;
         display_cmd = rs2_data;
         oled_fb_we   = mem_write && is_oled_fb && (funct3 == 3'b000);
-        oled_fb_addr = alu_result[6:0];
+        oled_fb_addr = alu_result[9:0];
         oled_fb_data = rs2_data[7:0];
     end
 endmodule
