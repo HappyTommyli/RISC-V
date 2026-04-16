@@ -1,4 +1,4 @@
-# Lode Runner lite - no-subroutine stable core
+# Lode Runner lite - robust movement core
 # buttons[3:0] = {RIGHT, LEFT, DOWN, UP}
 # IO: 0x8000 buttons, 0x9000 redraw, 0xA000 fb, 0xB000 leds
 
@@ -9,168 +9,109 @@ start:
     lui s3, 0x1           # map seed @0x1000
     lui s4, 0xB           # dbg leds
 
-    addi s5, zero, 8      # player x (0..124)
-    addi s6, zero, 6      # player page y (0..7)
-    addi s8, zero, 0      # throttle counter
+    addi s5, zero, 8      # x
+    addi s6, zero, 6      # page y
+    addi s8, zero, 0      # throttle
 
 main_loop:
     addi s8, s8, 1
-
     lw t1, 0(s0)          # buttons
-    addi t0, zero, 0      # load-use padding
+    addi t0, zero, 0
     addi t0, zero, 0
 
-    addi t2, zero, 0      # move flags [0]=L [1]=R [2]=U [3]=D
+    addi t2, zero, 0      # move flags
 
-    # update every 8 loops
-    andi t0, s8, 7
+    # update every 16 loops
+    andi t0, s8, 15
     bne t0, zero, dbg_and_render
 
-    # ladder_here in s9
-    addi s9, zero, 0
+    # candidate positions
+    addi s9, s5, 0        # nx
+    addi s10, s6, 0        # ny
+
+    # ladder_here at current (s5,s6) -> s11
+    addi s11, zero, 0
 
     # ladder1: x [24,28), page [5,8)
     addi t3, zero, 24
-    blt s5, t3, ladder2
+    blt s5, t3, ladder2_chk
     addi t4, zero, 28
-    bge s5, t4, ladder2
+    bge s5, t4, ladder2_chk
     addi t5, zero, 5
-    blt s6, t5, ladder2
-    addi s9, zero, 1
-    jal zero, ladder_done
+    blt s6, t5, ladder2_chk
+    addi s11, zero, 1
+    jal zero, ladder_chk_done
 
-ladder2:
+ladder2_chk:
     # ladder2: x [52,56), page [3,6)
     addi t3, zero, 52
-    blt s5, t3, ladder3
+    blt s5, t3, ladder3_chk
     addi t4, zero, 56
-    bge s5, t4, ladder3
+    bge s5, t4, ladder3_chk
     addi t5, zero, 3
-    blt s6, t5, ladder3
+    blt s6, t5, ladder3_chk
     addi t5, zero, 6
-    bge s6, t5, ladder3
-    addi s9, zero, 1
-    jal zero, ladder_done
+    bge s6, t5, ladder3_chk
+    addi s11, zero, 1
+    jal zero, ladder_chk_done
 
-ladder3:
+ladder3_chk:
     # ladder3: x [88,92), page [1,4)
     addi t3, zero, 88
-    blt s5, t3, ladder_done
+    blt s5, t3, ladder_chk_done
     addi t4, zero, 92
-    bge s5, t4, ladder_done
+    bge s5, t4, ladder_chk_done
     addi t5, zero, 1
-    blt s6, t5, ladder_done
+    blt s6, t5, ladder_chk_done
     addi t5, zero, 4
-    bge s6, t5, ladder_done
-    addi s9, zero, 1
+    bge s6, t5, ladder_chk_done
+    addi s11, zero, 1
 
-ladder_done:
+ladder_chk_done:
 
-chk_up:
+    # UP
     andi t3, t1, 1
-    beq t3, zero, chk_down
-    beq s9, zero, chk_down
-    beq s6, zero, chk_down
-    addi s6, s6, -1
+    beq t3, zero, do_down
+    beq s11, zero, do_down
+    beq s10, zero, do_down
+    addi s10, s10, -1
     addi t4, zero, 4
     or t2, t2, t4
 
-chk_down:
+do_down:
     andi t3, t1, 2
-    beq t3, zero, chk_left
-    beq s9, zero, chk_left
+    beq t3, zero, do_left
+    beq s11, zero, do_left
     addi t4, zero, 7
-    bge s6, t4, chk_left
-    addi s6, s6, 1
+    bge s10, t4, do_left
+    addi s10, s10, 1
     addi t4, zero, 8
     or t2, t2, t4
 
-chk_left:
-    andi t3, t1, 4
-    beq t3, zero, chk_right
-    beq s5, zero, chk_right
-
-    addi t0, s5, -1       # candidate x
-    addi t6, zero, 0      # blocked flag
-
-    # wall1: x [30,34), page >=2
-    addi t4, zero, 2
-    blt s6, t4, w1_done_l
-    addi t4, zero, 30
-    blt t0, t4, w1_done_l
-    addi t4, zero, 34
-    blt t0, t4, set_block_l
-w1_done_l:
-    # wall2: x [62,66), page >=3
-    addi t4, zero, 3
-    blt s6, t4, w2_done_l
-    addi t4, zero, 62
-    blt t0, t4, w2_done_l
-    addi t4, zero, 66
-    blt t0, t4, set_block_l
-w2_done_l:
-    # wall3: x [96,100), page >=1
-    addi t4, zero, 1
-    blt s6, t4, w3_done_l
-    addi t4, zero, 96
-    blt t0, t4, w3_done_l
-    addi t4, zero, 100
-    blt t0, t4, set_block_l
-w3_done_l:
-    beq t6, zero, do_left
-    jal zero, chk_right
-set_block_l:
-    addi t6, zero, 1
-    jal zero, w2_done_l
-
 do_left:
-    addi s5, s5, -1
+    andi t3, t1, 4
+    beq t3, zero, do_right
+    beq s9, zero, do_right
+
+left_apply:
+    addi s9, s9, -1
     addi t4, zero, 1
     or t2, t2, t4
-
-chk_right:
-    andi t3, t1, 8
-    beq t3, zero, dbg_and_render
-    addi t4, zero, 124
-    bge s5, t4, dbg_and_render
-
-    addi t0, s5, 1        # candidate x
-    addi t6, zero, 0      # blocked flag
-
-    # wall1
-    addi t4, zero, 2
-    blt s6, t4, w1_done_r
-    addi t4, zero, 30
-    blt t0, t4, w1_done_r
-    addi t4, zero, 34
-    blt t0, t4, set_block_r
-w1_done_r:
-    # wall2
-    addi t4, zero, 3
-    blt s6, t4, w2_done_r
-    addi t4, zero, 62
-    blt t0, t4, w2_done_r
-    addi t4, zero, 66
-    blt t0, t4, set_block_r
-w2_done_r:
-    # wall3
-    addi t4, zero, 1
-    blt s6, t4, w3_done_r
-    addi t4, zero, 96
-    blt t0, t4, w3_done_r
-    addi t4, zero, 100
-    blt t0, t4, set_block_r
-w3_done_r:
-    beq t6, zero, do_right
-    jal zero, dbg_and_render
-set_block_r:
-    addi t6, zero, 1
-    jal zero, w2_done_r
 
 do_right:
-    addi s5, s5, 1
+    andi t3, t1, 8
+    beq t3, zero, commit_pos
+    addi t4, zero, 124
+    bge s9, t4, commit_pos
+
+right_apply:
+    addi s9, s9, 1
     addi t4, zero, 2
     or t2, t2, t4
+
+commit_pos:
+    addi s5, s9, 0
+    addi s6, s10, 0
 
 # dbg_leds[3:0]=buttons, [7:4]=move flags, [11:8]=x low nibble
 dbg_and_render:
