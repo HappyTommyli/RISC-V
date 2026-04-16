@@ -66,27 +66,24 @@ module inst_mem (
     memory[45] = 32'h008f1f13;
     memory[46] = 32'h01efefb3;
     memory[47] = 32'h01fa2023;
-    memory[48] = 32'h00008d93;
-    memory[49] = 32'h00000293;
-    memory[50] = 32'h00598e33;
-    memory[51] = 32'h000e4e83;
-    memory[52] = 32'h00590f33;
-    memory[53] = 32'h01df0023;
-    memory[54] = 32'h00128293;
-    memory[55] = 32'h40000e13;
-    memory[56] = 32'hffc2c4e3;
-    memory[57] = 32'h007b1293;
-    memory[58] = 32'h015282b3;
-    memory[59] = 32'h012282b3;
-    memory[60] = 32'hfff00e13;
-    memory[61] = 32'h01c28023;
-    memory[62] = 32'h01c280a3;
-    memory[63] = 32'h01c28123;
-    memory[64] = 32'h01c281a3;
-    memory[65] = 32'h0004a023;
-    memory[66] = 32'h000d8093;
-    memory[67] = 32'h00008067;
-    memory[68] = 32'hf11ff06f;
+    memory[48] = 32'h00000293;
+    memory[49] = 32'h00598e33;
+    memory[50] = 32'h000e4e83;
+    memory[51] = 32'h00590f33;
+    memory[52] = 32'h01df0023;
+    memory[53] = 32'h00128293;
+    memory[54] = 32'h40000e13;
+    memory[55] = 32'hffc2c4e3;
+    memory[56] = 32'h007b1293;
+    memory[57] = 32'h015282b3;
+    memory[58] = 32'h012282b3;
+    memory[59] = 32'hfff00e13;
+    memory[60] = 32'h01c28023;
+    memory[61] = 32'h01c280a3;
+    memory[62] = 32'h01c28123;
+    memory[63] = 32'h01c281a3;
+    memory[64] = 32'h0004a023;
+    memory[65] = 32'hf1dff06f;
   end
 
   always @(*) begin

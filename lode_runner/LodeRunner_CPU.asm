@@ -83,8 +83,6 @@ dbg_out:
 
 # render every loop (smooth refresh)
 do_render:
-    addi s11, ra, 0
-
     # copy map seed to oled framebuffer
     addi t0, zero, 0
 copy_loop:
@@ -109,8 +107,4 @@ copy_loop:
 
     # trigger display redraw
     sw zero, 0(s1)
-
-    addi ra, s11, 0
-    jalr zero, 0(ra)
-
     jal zero, main_loop
