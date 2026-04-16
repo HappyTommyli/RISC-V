@@ -10,7 +10,8 @@ module pipeline (
     output [31:0] display_cmd,
     output        oled_fb_we,
     output [9:0]  oled_fb_addr,
-    output [7:0]  oled_fb_data
+    output [7:0]  oled_fb_data,
+    output [15:0] dbg_leds
 );
     // IF/ID outputs
     wire [31:0] if_id_pc;
@@ -110,6 +111,7 @@ module pipeline (
     wire        mem_oled_fb_we;
     wire [9:0]  mem_oled_fb_addr;
     wire [7:0]  mem_oled_fb_data;
+    wire [15:0] mem_dbg_leds;
 
     // MEM/WB pipeline registers
     reg  [31:0] mem_wb_data_reg;
@@ -426,7 +428,8 @@ module pipeline (
         .display_cmd    (mem_display_cmd),
         .oled_fb_we     (mem_oled_fb_we),
         .oled_fb_addr   (mem_oled_fb_addr),
-        .oled_fb_data   (mem_oled_fb_data)
+        .oled_fb_data   (mem_oled_fb_data),
+        .dbg_leds       (mem_dbg_leds)
     );
 
     assign display_we  = mem_display_we;
@@ -434,6 +437,7 @@ module pipeline (
     assign oled_fb_we   = mem_oled_fb_we;
     assign oled_fb_addr = mem_oled_fb_addr;
     assign oled_fb_data = mem_oled_fb_data;
+    assign dbg_leds     = mem_dbg_leds;
 
     // MEM/WB pipeline registers
     always @(posedge clk or posedge rst) begin

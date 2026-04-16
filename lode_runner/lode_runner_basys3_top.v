@@ -5,6 +5,7 @@ module lode_runner_basys3_top (
     input  wire btnD,
     input  wire btnL,
     input  wire btnR,
+    output wire [15:0] led,
     output wire oled_sclk,
     output wire oled_mosi,
     output wire oled_dc,
@@ -30,6 +31,7 @@ module lode_runner_basys3_top (
     wire        oled_fb_we;
     wire [9:0]  oled_fb_addr;
     wire [7:0]  oled_fb_data;
+    wire [15:0] dbg_leds;
     wire        display_busy;
 
     pipeline u_pipeline (
@@ -42,8 +44,13 @@ module lode_runner_basys3_top (
         .display_cmd (display_cmd),
         .oled_fb_we  (oled_fb_we),
         .oled_fb_addr(oled_fb_addr),
-        .oled_fb_data(oled_fb_data)
+        .oled_fb_data(oled_fb_data),
+        .dbg_leds    (dbg_leds)
     );
+
+    // led[3:0]: direct hardware button mirror
+    // led[7:4]: CPU-side debug nibble (movement flags from dbg_leds[7:4])
+    assign led = {8'b0, dbg_leds[7:4], buttons};
 
     Display_Engine u_display (
         .clk          (clk100),

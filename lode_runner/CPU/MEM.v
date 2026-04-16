@@ -28,7 +28,8 @@ module MEM(
     output [31:0] display_cmd,
     output        oled_fb_we,
     output [9:0]  oled_fb_addr,
-    output [7:0]  oled_fb_data
+    output [7:0]  oled_fb_data,
+    output [15:0] dbg_leds
 );
 wire [31:0] data_mem_data;
 
@@ -47,7 +48,8 @@ Data_Memory data_memory_inst (
     .display_cmd(display_cmd),
     .oled_fb_we(oled_fb_we),
     .oled_fb_addr(oled_fb_addr),
-    .oled_fb_data(oled_fb_data)
+    .oled_fb_data(oled_fb_data),
+    .dbg_leds(dbg_leds)
 );
 
 assign mem_data = mem_read ? data_mem_data : 32'b0; // If reading, output data from memory, else 0

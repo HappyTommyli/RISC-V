@@ -14,7 +14,8 @@ module Data_Memory (
     output reg [31:0] display_cmd,
     output reg oled_fb_we,
     output reg [9:0] oled_fb_addr,
-    output reg [7:0] oled_fb_data
+    output reg [7:0] oled_fb_data,
+    output reg [15:0] dbg_leds
 );
     wire [2:0] funct3 = instruction[14:12];
 
@@ -35,6 +36,7 @@ module Data_Memory (
     wire is_timer        = (alu_result == 32'h00008004);
     wire is_display      = (alu_result == 32'h00009000);
     wire is_oled_fb      = (alu_result >= 32'h0000A000) && (alu_result < 32'h0000A400);
+    wire is_led          = (alu_result == 32'h0000B000);
 
     initial begin
         for (i = 0; i < WORDS; i = i + 1) begin
@@ -43,6 +45,7 @@ module Data_Memory (
         for (i = 0; i < 1024; i = i + 1) begin
             oled_shadow[i] = 8'b0;
         end
+        dbg_leds = 16'b0;
 `include "lode_runner_map_128x64_mem_init.vh"
     end
 
@@ -79,6 +82,10 @@ module Data_Memory (
 
         if (mem_write && is_oled_fb && (funct3 == 3'b000)) begin
             oled_shadow[alu_result[9:0]] <= rs2_data[7:0];
+        end
+
+        if (mem_write && is_led) begin
+            dbg_leds <= rs2_data[15:0];
         end
     end
 
@@ -128,6 +135,8 @@ module Data_Memory (
                 data_mem_data = {display_busy, 31'b0};
             end else if (is_oled_fb) begin
                 data_mem_data = {24'b0, oled_shadow[alu_result[9:0]]};
+            end else if (is_led) begin
+                data_mem_data = {16'b0, dbg_leds};
             end else begin
                 data_mem_data = 32'b0;
             end
