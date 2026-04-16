@@ -11,9 +11,27 @@ start:
 
     addi s5, zero, 8      # x
     addi s6, zero, 6      # page y
-    addi s7, zero, 0      # collected coins bitmask (10 bits)
+    addi s7, zero, 0      # collected coins bitmask (3 bits)
     addi s8, zero, 0      # throttle / animation counter
     addi a0, zero, 0      # world page: 0=left map, 1=right map
+    addi a2, zero, 0      # center gold animation timer
+
+    # clear 3 spike piles in map seed so they are not treated as walls
+    # pile0: page3 x32..35  (0x1000 + 416..419)
+    sb zero, 416(s3)
+    sb zero, 417(s3)
+    sb zero, 418(s3)
+    sb zero, 419(s3)
+    # pile1: page6 x65..68  (0x1000 + 833..836)
+    sb zero, 833(s3)
+    sb zero, 834(s3)
+    sb zero, 835(s3)
+    sb zero, 836(s3)
+    # pile2: page3 x102..105 (0x1000 + 486..489)
+    sb zero, 486(s3)
+    sb zero, 487(s3)
+    sb zero, 488(s3)
+    sb zero, 489(s3)
 
 main_loop:
     addi s8, s8, 1
@@ -414,113 +432,43 @@ commit_pos:
     addi s5, s9, 0
     addi s6, s10, 0
 
-    beq a0, zero, coin_l0_chk
-    jal zero, coin_r0_chk
+    # keep previous coin state in t0 for "new pickup" detection
+    addi t0, s7, 0
 
-# left map coins (bits 0..5), widened pickup window
-coin_l0_chk:
-    # coin0 center (30,4) -> bit0
-    addi t3, zero, 4
-    bne s6, t3, coin_l1_chk
-    addi t4, zero, 27
-    blt s5, t4, coin_l1_chk
-    addi t4, zero, 35
-    bge s5, t4, coin_l1_chk
+    # coin0 at original left spike pile: center (33,3), bit0
+    addi t3, zero, 3
+    bne s6, t3, coin1_chk
+    addi t4, zero, 31
+    blt s5, t4, coin1_chk
+    addi t4, zero, 36
+    bge s5, t4, coin1_chk
     ori s7, s7, 1
 
-coin_l1_chk:
-    # coin1 center (54,3) -> bit1
-    addi t3, zero, 3
-    bne s6, t3, coin_l2_chk
-    addi t4, zero, 51
-    blt s5, t4, coin_l2_chk
-    addi t4, zero, 59
-    bge s5, t4, coin_l2_chk
+coin1_chk:
+    # coin1 at original middle spike pile: center (66,6), bit1
+    addi t3, zero, 6
+    bne s6, t3, coin2_chk
+    addi t4, zero, 64
+    blt s5, t4, coin2_chk
+    addi t4, zero, 69
+    bge s5, t4, coin2_chk
     ori s7, s7, 2
 
-coin_l2_chk:
-    # coin2 center (74,3) -> bit2
+coin2_chk:
+    # coin2 at original right spike pile: center (103,3), bit2
     addi t3, zero, 3
-    bne s6, t3, coin_l3_chk
-    addi t4, zero, 71
-    blt s5, t4, coin_l3_chk
-    addi t4, zero, 79
-    bge s5, t4, coin_l3_chk
+    bne s6, t3, coin_anim_chk
+    addi t4, zero, 101
+    blt s5, t4, coin_anim_chk
+    addi t4, zero, 106
+    bge s5, t4, coin_anim_chk
     ori s7, s7, 4
 
-coin_l3_chk:
-    # coin3 center (90,2) -> bit3
-    addi t3, zero, 2
-    bne s6, t3, coin_l4_chk
-    addi t4, zero, 87
-    blt s5, t4, coin_l4_chk
-    addi t4, zero, 95
-    bge s5, t4, coin_l4_chk
-    ori s7, s7, 8
+coin_anim_chk:
+    beq s7, t0, dbg_and_render
+    addi a2, zero, 24      # show center "gold coin" for a short time
 
-coin_l4_chk:
-    # coin4 center (23,5) -> bit4
-    addi t3, zero, 5
-    bne s6, t3, coin_l5_chk
-    addi t4, zero, 20
-    blt s5, t4, coin_l5_chk
-    addi t4, zero, 28
-    bge s5, t4, coin_l5_chk
-    ori s7, s7, 16
-
-coin_l5_chk:
-    # coin5 center (102,5) -> bit5
-    addi t3, zero, 5
-    bne s6, t3, dbg_and_render
-    addi t4, zero, 99
-    blt s5, t4, dbg_and_render
-    addi t4, zero, 107
-    bge s5, t4, dbg_and_render
-    ori s7, s7, 32
-    jal zero, dbg_and_render
-
-# right map coins (bits 6..9)
-coin_r0_chk:
-    # coin6 center (18,6) -> bit6
-    addi t3, zero, 6
-    bne s6, t3, coin_r1_chk
-    addi t4, zero, 15
-    blt s5, t4, coin_r1_chk
-    addi t4, zero, 23
-    bge s5, t4, coin_r1_chk
-    ori s7, s7, 64
-
-coin_r1_chk:
-    # coin7 center (46,2) -> bit7
-    addi t3, zero, 2
-    bne s6, t3, coin_r2_chk
-    addi t4, zero, 43
-    blt s5, t4, coin_r2_chk
-    addi t4, zero, 51
-    bge s5, t4, coin_r2_chk
-    ori s7, s7, 128
-
-coin_r2_chk:
-    # coin8 center (74,4) -> bit8
-    addi t3, zero, 4
-    bne s6, t3, coin_r3_chk
-    addi t4, zero, 71
-    blt s5, t4, coin_r3_chk
-    addi t4, zero, 79
-    bge s5, t4, coin_r3_chk
-    ori s7, s7, 256
-
-coin_r3_chk:
-    # coin9 center (110,1) -> bit9
-    addi t3, zero, 1
-    bne s6, t3, dbg_and_render
-    addi t4, zero, 107
-    blt s5, t4, dbg_and_render
-    addi t4, zero, 115
-    bge s5, t4, dbg_and_render
-    ori s7, s7, 512
-
-# dbg_leds[3:0]=buttons, [7:4]=move flags, [11:8]=x low nibble, [15:12]=coin count(0..10)
+# dbg_leds[3:0]=buttons, [7:4]=move flags, [11:8]=x low nibble, [15:12]=coin count(0..3)
 dbg_and_render:
     andi t6, t1, 15
     slli t4, t2, 4
@@ -529,7 +477,7 @@ dbg_and_render:
     slli t5, t5, 8
     or t6, t6, t5
 
-    # popcount10(s7) -> t3
+    # popcount3(s7) -> t3
     addi t3, zero, 0
     andi t4, s7, 1
     beq t4, zero, cnt_b1
@@ -540,41 +488,12 @@ cnt_b1:
     addi t3, t3, 1
 cnt_b2:
     andi t4, s7, 4
-    beq t4, zero, cnt_b3
-    addi t3, t3, 1
-cnt_b3:
-    andi t4, s7, 8
-    beq t4, zero, cnt_b4
-    addi t3, t3, 1
-cnt_b4:
-    andi t4, s7, 16
-    beq t4, zero, cnt_b5
-    addi t3, t3, 1
-cnt_b5:
-    andi t4, s7, 32
-    beq t4, zero, cnt_b6
-    addi t3, t3, 1
-cnt_b6:
-    andi t4, s7, 64
-    beq t4, zero, cnt_b7
-    addi t3, t3, 1
-cnt_b7:
-    andi t4, s7, 128
-    beq t4, zero, cnt_b8
-    addi t3, t3, 1
-cnt_b8:
-    andi t4, s7, 256
-    beq t4, zero, cnt_b9
-    addi t3, t3, 1
-cnt_b9:
-    andi t4, s7, 512
     beq t4, zero, cnt_done
     addi t3, t3, 1
 cnt_done:
-    addi a1, t3, 0
+    addi a1, t3, 0         # save for HUD
     slli t3, t3, 12
     or t6, t6, t3
-
     sw t6, 0(s4)
 
     # copy map seed to framebuffer
@@ -588,7 +507,7 @@ copy_loop:
     addi t3, zero, 1024
     blt t0, t3, copy_loop
 
-    # HUD at top-left: coin icon + 10-step progress bar
+    # HUD at top-left: coin icon + 3 progress pips
     addi t0, zero, 0
     add t0, t0, s2
     addi t4, zero, 60
@@ -602,273 +521,112 @@ copy_loop:
     sb t4, 4(t0)
     sb t4, 5(t0)
     sb t4, 6(t0)
-    sb t4, 7(t0)
-    sb t4, 8(t0)
-    sb t4, 9(t0)
-    sb t4, 10(t0)
-    sb t4, 11(t0)
-    sb t4, 12(t0)
-    sb t4, 13(t0)
-
     addi t5, zero, 0
-    blt t5, a1, hud_1
-    jal zero, hud_done
-hud_1:
+    blt t5, a1, hud1
+    jal zero, draw_coins
+hud1:
     addi t4, zero, 24
     sb t4, 4(t0)
     addi t5, zero, 1
-    blt t5, a1, hud_2
-    jal zero, hud_done
-hud_2:
+    blt t5, a1, hud2
+    jal zero, draw_coins
+hud2:
     sb t4, 5(t0)
     addi t5, zero, 2
-    blt t5, a1, hud_3
-    jal zero, hud_done
-hud_3:
+    blt t5, a1, hud3
+    jal zero, draw_coins
+hud3:
     sb t4, 6(t0)
-    addi t5, zero, 3
-    blt t5, a1, hud_4
-    jal zero, hud_done
-hud_4:
-    sb t4, 7(t0)
-    addi t5, zero, 4
-    blt t5, a1, hud_5
-    jal zero, hud_done
-hud_5:
-    sb t4, 8(t0)
-    addi t5, zero, 5
-    blt t5, a1, hud_6
-    jal zero, hud_done
-hud_6:
-    sb t4, 9(t0)
-    addi t5, zero, 6
-    blt t5, a1, hud_7
-    jal zero, hud_done
-hud_7:
-    sb t4, 10(t0)
-    addi t5, zero, 7
-    blt t5, a1, hud_8
-    jal zero, hud_done
-hud_8:
-    sb t4, 11(t0)
-    addi t5, zero, 8
-    blt t5, a1, hud_9
-    jal zero, hud_done
-hud_9:
-    sb t4, 12(t0)
-    addi t5, zero, 9
-    blt t5, a1, hud_10
-    jal zero, hud_done
-hud_10:
-    sb t4, 13(t0)
 
-hud_done:
-    # page indicator: right map mark near top-right
-    beq a0, zero, draw_coins_dispatch
-    addi t0, zero, 127
+draw_coins:
+    # draw 3 larger coins (3x8) if not collected
+    andi t3, s7, 1
+    bne t3, zero, coin_draw_1
+    addi t0, zero, 3
+    slli t0, t0, 7
+    addi t4, zero, 32
+    add t0, t0, t4
+    add t0, t0, s2
+    addi t4, zero, 60
+    sb t4, 0(t0)
+    addi t4, zero, 126
+    sb t4, 1(t0)
+    addi t4, zero, 60
+    sb t4, 2(t0)
+
+coin_draw_1:
+    andi t3, s7, 2
+    bne t3, zero, coin_draw_2
+    addi t0, zero, 6
+    slli t0, t0, 7
+    addi t4, zero, 65
+    add t0, t0, t4
+    add t0, t0, s2
+    addi t4, zero, 60
+    sb t4, 0(t0)
+    addi t4, zero, 126
+    sb t4, 1(t0)
+    addi t4, zero, 60
+    sb t4, 2(t0)
+
+coin_draw_2:
+    andi t3, s7, 4
+    bne t3, zero, center_anim
+    addi t0, zero, 3
+    slli t0, t0, 7
+    addi t4, zero, 102
+    add t0, t0, t4
+    add t0, t0, s2
+    addi t4, zero, 60
+    sb t4, 0(t0)
+    addi t4, zero, 126
+    sb t4, 1(t0)
+    addi t4, zero, 60
+    sb t4, 2(t0)
+
+center_anim:
+    # original-like short center flash after pickup
+    beq a2, zero, draw_player
+    addi a2, a2, -1
+    addi t0, zero, 3
+    slli t0, t0, 7
+    addi t4, zero, 62
+    add t0, t0, t4
     add t0, t0, s2
     addi t4, zero, 24
     sb t4, 0(t0)
-
-    # right-map sky pole visual at x=112..113, pages 1..6
-    addi t4, zero, 17
-    addi t0, zero, 112
-    add t0, t0, s2
-    sb t4, 128(t0)
-    sb t4, 129(t0)
-    sb t4, 256(t0)
-    sb t4, 257(t0)
-    sb t4, 384(t0)
-    sb t4, 385(t0)
-    sb t4, 512(t0)
-    sb t4, 513(t0)
-    sb t4, 640(t0)
-    sb t4, 641(t0)
-    sb t4, 768(t0)
-    sb t4, 769(t0)
-
-draw_coins_dispatch:
-    beq a0, zero, draw_coins_left
-    jal zero, draw_coins_right
-
-draw_coins_left:
-    # draw larger coins 3x8 (0x3C,0x7E,0x3C)
-    andi t3, s7, 1
-    bne t3, zero, coin_l_draw_1
-    addi t0, zero, 4
-    slli t0, t0, 7
-    addi t4, zero, 29
-    add t0, t0, t4
-    add t0, t0, s2
     addi t4, zero, 60
-    sb t4, 0(t0)
-    addi t4, zero, 126
     sb t4, 1(t0)
-    addi t4, zero, 60
-    sb t4, 2(t0)
-
-coin_l_draw_1:
-    andi t3, s7, 2
-    bne t3, zero, coin_l_draw_2
-    addi t0, zero, 3
-    slli t0, t0, 7
-    addi t4, zero, 53
-    add t0, t0, t4
-    add t0, t0, s2
-    addi t4, zero, 60
-    sb t4, 0(t0)
     addi t4, zero, 126
-    sb t4, 1(t0)
-    addi t4, zero, 60
     sb t4, 2(t0)
+    addi t4, zero, 60
+    sb t4, 3(t0)
+    addi t4, zero, 24
+    sb t4, 4(t0)
 
-coin_l_draw_2:
-    andi t3, s7, 4
-    bne t3, zero, coin_l_draw_3
-    addi t0, zero, 3
-    slli t0, t0, 7
-    addi t4, zero, 73
-    add t0, t0, t4
-    add t0, t0, s2
-    addi t4, zero, 60
-    sb t4, 0(t0)
-    addi t4, zero, 126
-    sb t4, 1(t0)
-    addi t4, zero, 60
-    sb t4, 2(t0)
-
-coin_l_draw_3:
-    andi t3, s7, 8
-    bne t3, zero, coin_l_draw_4
-    addi t0, zero, 2
-    slli t0, t0, 7
-    addi t4, zero, 89
-    add t0, t0, t4
-    add t0, t0, s2
-    addi t4, zero, 60
-    sb t4, 0(t0)
-    addi t4, zero, 126
-    sb t4, 1(t0)
-    addi t4, zero, 60
-    sb t4, 2(t0)
-
-coin_l_draw_4:
-    andi t3, s7, 16
-    bne t3, zero, coin_l_draw_5
-    addi t0, zero, 5
-    slli t0, t0, 7
-    addi t4, zero, 22
-    add t0, t0, t4
-    add t0, t0, s2
-    addi t4, zero, 60
-    sb t4, 0(t0)
-    addi t4, zero, 126
-    sb t4, 1(t0)
-    addi t4, zero, 60
-    sb t4, 2(t0)
-
-coin_l_draw_5:
-    andi t3, s7, 32
-    bne t3, zero, after_coin_draw
-    addi t0, zero, 5
-    slli t0, t0, 7
-    addi t4, zero, 101
-    add t0, t0, t4
-    add t0, t0, s2
-    addi t4, zero, 60
-    sb t4, 0(t0)
-    addi t4, zero, 126
-    sb t4, 1(t0)
-    addi t4, zero, 60
-    sb t4, 2(t0)
-    jal zero, after_coin_draw
-
-draw_coins_right:
-    andi t3, s7, 64
-    bne t3, zero, coin_r_draw_1
-    addi t0, zero, 6
-    slli t0, t0, 7
-    addi t4, zero, 17
-    add t0, t0, t4
-    add t0, t0, s2
-    addi t4, zero, 60
-    sb t4, 0(t0)
-    addi t4, zero, 126
-    sb t4, 1(t0)
-    addi t4, zero, 60
-    sb t4, 2(t0)
-
-coin_r_draw_1:
-    andi t3, s7, 128
-    bne t3, zero, coin_r_draw_2
-    addi t0, zero, 2
-    slli t0, t0, 7
-    addi t4, zero, 45
-    add t0, t0, t4
-    add t0, t0, s2
-    addi t4, zero, 60
-    sb t4, 0(t0)
-    addi t4, zero, 126
-    sb t4, 1(t0)
-    addi t4, zero, 60
-    sb t4, 2(t0)
-
-coin_r_draw_2:
-    andi t3, s7, 256
-    bne t3, zero, coin_r_draw_3
-    addi t0, zero, 4
-    slli t0, t0, 7
-    addi t4, zero, 73
-    add t0, t0, t4
-    add t0, t0, s2
-    addi t4, zero, 60
-    sb t4, 0(t0)
-    addi t4, zero, 126
-    sb t4, 1(t0)
-    addi t4, zero, 60
-    sb t4, 2(t0)
-
-coin_r_draw_3:
-    andi t3, s7, 512
-    bne t3, zero, after_coin_draw
-    addi t0, zero, 1
-    slli t0, t0, 7
-    addi t4, zero, 109
-    add t0, t0, t4
-    add t0, t0, s2
-    addi t4, zero, 60
-    sb t4, 0(t0)
-    addi t4, zero, 126
-    sb t4, 1(t0)
-    addi t4, zero, 60
-    sb t4, 2(t0)
-
-after_coin_draw:
-    # draw player sprite 4x8, closer to original lode-runner style
+draw_player:
+    # draw player sprite 4x8
     slli t0, s6, 7
     add t0, t0, s5
     add t0, t0, s2
-
-    addi t3, zero, 24      # 0x18 head/hat
+    addi t3, zero, 24
     sb t3, 0(t0)
-    addi t3, zero, 60      # 0x3C torso
+    addi t3, zero, 60
     sb t3, 1(t0)
-    addi t3, zero, 102     # 0x66 arms
+    addi t3, zero, 102
     sb t3, 2(t0)
-
     andi t3, s8, 32
     beq t3, zero, player_leg_a
-    addi t3, zero, 66      # 0x42 legs frame B
+    addi t3, zero, 66
     sb t3, 3(t0)
-    jal zero, player_done
-
+    jal zero, win_check
 player_leg_a:
-    addi t3, zero, 36      # 0x24 legs frame A
+    addi t3, zero, 36
     sb t3, 3(t0)
 
-player_done:
-    # draw WIN bar when all 10 coins collected
-    addi t3, zero, 1023
+win_check:
+    # all 3 coins: small win mark
+    addi t3, zero, 7
     bne s7, t3, render_commit
     addi t0, zero, 0
     add t0, t0, s2
