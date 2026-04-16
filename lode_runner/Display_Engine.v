@@ -103,7 +103,7 @@ module Display_Engine (
                 framebuf[oled_fb_addr] <= oled_fb_data;
             end
 
-            if (we || redraw_pulse || cmd_data[0]) begin
+            if (we || redraw_pulse) begin
                 redraw_req <= 1'b1;
             end
 

@@ -150,8 +150,14 @@ copy_map_loop:
     jal ra, plot_player_2x2
 
 wait_display_idle:
+    addi t5, zero, -1
+    srli t5, t5, 18
+wait_display_idle_loop:
     lw t0, 0(s1)
-    bne t0, zero, wait_display_idle
+    beq t0, zero, wait_display_done
+    addi t5, t5, -1
+    bne t5, zero, wait_display_idle_loop
+wait_display_done:
     sw zero, 0(s1)
 
     addi ra, s11, 0
@@ -161,23 +167,23 @@ wait_display_idle:
 plot_player_2x2:
     addi s10, ra, 0
 
-    jal ra, set_pixel
+    jal ra, toggle_pixel
 
     addi a0, a0, 1
-    jal ra, set_pixel
+    jal ra, toggle_pixel
 
     addi a0, a0, -1
     addi a1, a1, 1
-    jal ra, set_pixel
+    jal ra, toggle_pixel
 
     addi a0, a0, 1
-    jal ra, set_pixel
+    jal ra, toggle_pixel
 
     addi ra, s10, 0
     jalr zero, 0(ra)
 
-# a0=x(0..127), a1=y(0..63): set pixel in OLED framebuffer shadow
-set_pixel:
+# a0=x(0..127), a1=y(0..63): toggle pixel in OLED framebuffer shadow
+toggle_pixel:
     srli t0, a1, 3       # page
     slli t0, t0, 7       # page * 128
     add t0, t0, a0       # byte index
@@ -192,7 +198,7 @@ shift_mask_loop:
     jal zero, shift_mask_loop
 shift_mask_done:
     lbu t3, 0(t0)
-    or t3, t3, t2
+    xor t3, t3, t2
     sb t3, 0(t0)
     jalr zero, 0(ra)
 
