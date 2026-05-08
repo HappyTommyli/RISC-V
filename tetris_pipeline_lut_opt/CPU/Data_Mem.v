@@ -44,7 +44,6 @@ module Data_Memory (
     wire is_timer     = (alu_result == TIMER_ADDR);
     wire is_mmio      = is_uart_tx | is_uart_rx | is_uart_stat | is_timer;
 
-    integer i;
     always @(posedge clk or posedge rst) begin
         if (rst) begin
             uart_tx_we    <= 1'b0;
@@ -57,13 +56,6 @@ module Data_Memory (
             q_b2          <= 8'b0;
             q_b3          <= 8'b0;
 
-            // Keep deterministic startup behavior
-            for (i = 0; i < WORDS; i = i + 1) begin
-                mem_b0[i] <= 8'b0;
-                mem_b1[i] <= 8'b0;
-                mem_b2[i] <= 8'b0;
-                mem_b3[i] <= 8'b0;
-            end
         end else begin
             uart_tx_we  <= 1'b0;
             uart_rx_pop <= 1'b0;

@@ -64,18 +64,8 @@ module tetris_top (
     assign cpu_uart_rx_data  = rx_hold_data;
 
     // ------------------------------------------------------------------------
-    // UART TX path (FIFO to absorb CPU burst output)
-    localparam TX_FIFO_AW = 10;               // 2^10 = 1024 bytes
-    localparam TX_FIFO_DP = (1 << TX_FIFO_AW);
-
-    reg [7:0] tx_fifo_mem [0:TX_FIFO_DP-1];
-    reg [TX_FIFO_AW-1:0] tx_wptr;
-    reg [TX_FIFO_AW-1:0] tx_rptr;
-    reg [TX_FIFO_AW:0]   tx_count;
-
-    wire tx_fifo_empty = (tx_count == 0);
-    wire tx_fifo_full  = (tx_count == TX_FIFO_DP);
-
+    // UART TX path (minimal area): no FIFO, one-byte fire when TX is idle.
+    // If CPU writes while TX busy, that byte is dropped (acceptable for demo).
     reg        tx_start;
     reg [7:0]  tx_data;
     wire       tx_busy;
@@ -92,39 +82,17 @@ module tetris_top (
         .busy  (tx_busy)
     );
 
-    integer i;
     always @(posedge clk or posedge rst) begin
         if (rst) begin
-            tx_wptr  <= {TX_FIFO_AW{1'b0}};
-            tx_rptr  <= {TX_FIFO_AW{1'b0}};
-            tx_count <= {(TX_FIFO_AW+1){1'b0}};
             tx_start <= 1'b0;
             tx_data  <= 8'h00;
-            for (i = 0; i < TX_FIFO_DP; i = i + 1) begin
-                tx_fifo_mem[i] <= 8'h00;
-            end
         end else begin
             tx_start <= 1'b0;
 
-            // CPU write to FIFO
-            if (cpu_uart_tx_we && !tx_fifo_full) begin
-                tx_fifo_mem[tx_wptr] <= cpu_uart_tx_data;
-                tx_wptr <= tx_wptr + 1'b1;
-            end
-
-            // UART consume from FIFO
-            if (!tx_busy && !tx_fifo_empty) begin
-                tx_data  <= tx_fifo_mem[tx_rptr];
-                tx_rptr  <= tx_rptr + 1'b1;
+            if (cpu_uart_tx_we && !tx_busy) begin
+                tx_data  <= cpu_uart_tx_data;
                 tx_start <= 1'b1;
             end
-
-            // Count update with simultaneous push/pop handling
-            case ({(cpu_uart_tx_we && !tx_fifo_full), (!tx_busy && !tx_fifo_empty)})
-                2'b10: tx_count <= tx_count + 1'b1; // push only
-                2'b01: tx_count <= tx_count - 1'b1; // pop only
-                default: tx_count <= tx_count;      // both or none
-            endcase
         end
     end
 
